@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { ExtendedGameState } from '../store/gameStore';
-import { ChevronLeft, ChevronRight, Zap, Heart, Clock, CheckCircle2, XCircle } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Zap, Heart, Clock, CheckCircle2, XCircle, Shield } from 'lucide-react';
 
 interface HandProps {
   /** Full original inventory (all 25 cards, active and used) */

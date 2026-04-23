@@ -1,6 +1,6 @@
 import { useAuthStore } from '../store/authStore';
 import { useGameStore, type ExtendedGameState } from '../store/gameStore';
-import { Settings, Loader2 } from 'lucide-react';
+import { Settings, Loader2, Heart } from 'lucide-react';
 import { useState } from 'react';
 import Hand from '../components/Hand';
 import Board from '../components/Board';
