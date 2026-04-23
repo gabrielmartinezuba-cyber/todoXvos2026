@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore, type ExtendedGameState } from '../store/gameStore';
-import { ChevronLeft, ChevronRight, Zap, Heart, Clock, CheckCircle2, XCircle, Shield, Layers } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Zap, Heart, Clock, CheckCircle2, XCircle, Shield, Layers, ChevronUp } from 'lucide-react';
 
 interface HandProps {
   /** Full original inventory (all 25 cards, active and used) */
@@ -198,14 +198,31 @@ export default function Hand({ allCards, activeHand, onPlayCard }: HandProps) {
                   {card.card.descripcion}
                 </p>
 
-              {/* Tipo pill */}
-              <div className={`mt-4 text-[10px] uppercase tracking-widest font-black ${isActive ? accentClass : 'text-slate-300'}`}>
+              {/* Visual Indicator (Tuki) */}
+              {isActive && !isComodin && (
+                <div className="mt-auto flex flex-col items-center">
+                  <div className="flex items-center gap-1.5 opacity-40 animate-bounce">
+                    <div className="flex flex-col -space-y-2">
+                      <ChevronUp className="w-3 h-3 text-rose-600" />
+                      <ChevronUp className="w-3 h-3 text-rose-600" />
+                    </div>
+                    <Heart className="w-4 h-4 text-rose-600 fill-rose-600" />
+                    <div className="flex flex-col -space-y-2">
+                      <ChevronUp className="w-3 h-3 text-rose-600" />
+                      <ChevronUp className="w-3 h-3 text-rose-600" />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Action hints */}
+              <div className={`mt-4 text-[10px] uppercase tracking-widest font-black text-center ${isActive ? accentClass : 'text-slate-300'}`}>
                 {isActive
                   ? isSteal 
                     ? '⚡ Acción: Robar Carta'
                     : isComodin 
                     ? '🛡 Solo defensa' 
-                    : '↓ Deslizá hacia arriba'
+                    : ''
                   : ''
                 }
               </div>

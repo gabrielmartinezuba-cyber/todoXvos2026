@@ -221,28 +221,59 @@ export default function Board({
                 <Clock className="w-3 h-3" />
                 Retos Enviados ({outgoingChallenges.length})
               </h3>
-              <div className="space-y-2">
+              <div className="space-y-4">
                 <AnimatePresence>
                   {outgoingChallenges.map((item) => (
                     <motion.div
                       key={item.id}
                       layout
-                      initial={{ opacity: 0, y: 8 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, x: -40 }}
-                      className="bg-white/5 border border-white/10 rounded-2xl px-4 py-3 flex justify-between items-center"
+                      initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.8, x: -40 }}
+                      className="relative group"
                     >
-                      <div>
-                        <h5 className="text-white font-medium text-sm">{item.card.titulo}</h5>
-                        <span className="text-xs text-slate-600">Esperando que cumpla...</span>
+                      {/* Physical Card Representation (Outgoing) */}
+                      <div 
+                        className="rounded-[2.5rem] overflow-hidden border border-slate-100 relative shadow-lg bg-white/80 backdrop-blur-sm"
+                      >
+                        {/* Subtle romantic watermark */}
+                        <div className="absolute top-0 right-0 p-6 opacity-[0.02]">
+                           <Heart className="w-32 h-32 fill-slate-400" />
+                        </div>
+                        
+                        <div className="p-8 relative z-10">
+                          <div className="flex justify-between items-start mb-6">
+                            <span className="text-[10px] font-black text-slate-400 tracking-[0.3em] uppercase">
+                              {item.card.categoria}
+                            </span>
+                            <div className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center border border-slate-100">
+                              <Clock className="w-4 h-4 text-slate-300" />
+                            </div>
+                          </div>
+
+                          <h4 className="text-2xl font-serif font-black text-slate-400 mb-4 leading-tight tracking-tight">
+                            {item.card.titulo}
+                          </h4>
+                          
+                          <p className="text-slate-400 text-base leading-relaxed mb-8 font-medium">
+                            {item.card.descripcion}
+                          </p>
+
+                          <div className="flex flex-col gap-3">
+                            {/* Waiting Pill */}
+                            <div className="w-full flex items-center justify-center gap-3 bg-slate-50 border border-slate-100 text-slate-400 py-4 rounded-2xl text-sm font-black uppercase tracking-widest cursor-default">
+                              <div className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+                              Esperando que cumpla...
+                            </div>
+                          </div>
+                        </div>
                       </div>
-                      <div className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
                     </motion.div>
                   ))}
                 </AnimatePresence>
 
                 {outgoingChallenges.length === 0 && (
-                  <p className="text-slate-700 text-sm italic">No enviaste retos todavía.</p>
+                  <p className="text-slate-500 text-sm italic py-2">No enviaste retos todavía.</p>
                 )}
               </div>
             </section>
