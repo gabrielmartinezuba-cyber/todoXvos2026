@@ -35,7 +35,7 @@ interface GameStoreState {
   reset: () => void;
 }
 
-const initialState: Omit<GameStoreState, 'loadGame' | 'subscribeToMatch' | 'unsubscribe' | 'playCard' | 'updateCardStatus' | 'useComodinAndResolve' | 'reset'> = {
+const initialState: Omit<GameStoreState, 'loadGame' | 'subscribeToMatch' | 'unsubscribe' | 'playCard' | 'updateCardStatus' | 'useComodinAndResolve' | 'playStealCard' | 'reset'> = {
   hand: [],
   allPlayerCards: [],
   incomingChallenges: [],

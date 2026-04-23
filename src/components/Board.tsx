@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import type { ExtendedGameState } from '../store/gameStore';
 import {
   CheckCircle2, Sparkles, Shield, Clock,
-  ChevronDown, X, History, Layers
+  X, History, Layers
 } from 'lucide-react';
 
 interface BoardProps {
@@ -13,7 +13,7 @@ interface BoardProps {
   currentUserId: string;
   myComodines: ExtendedGameState[]; // in_hand comodines only
   onComplete: (id: string) => void;
-  onUseComodin: (challengeId: string, status: 'discarded' | 'bounced', comodinId: string) => Promise<void>;
+  onUseComodin: (challengeId: string, comodin: ExtendedGameState) => Promise<void>;
 }
 
 type Tab = 'activos' | 'historial';
@@ -21,8 +21,6 @@ type Tab = 'activos' | 'historial';
 // Friendly history event label with perspective
 function historyLabel(item: ExtendedGameState, myId: string): string {
   const isMe = item.player_id === myId;
-  const partnerName = "Tu pareja";
-  const actor = isMe ? "Vos" : partnerName;
 
   switch (item.status) {
     case 'completed': 
@@ -66,10 +64,10 @@ export default function Board({
     setLoadingId(null);
   };
 
-  const handleComodinPick = async (comodin: ExtendedGameState, type: 'discarded' | 'bounced') => {
+  const handleComodinPick = async (comodin: ExtendedGameState) => {
     if (!comodinModalFor) return;
     setLoadingId(comodinModalFor.id);
-    await onUseComodin(comodinModalFor.id, type, comodin.id);
+    await onUseComodin(comodinModalFor.id, comodin);
     setLoadingId(null);
     setComodinModalFor(null);
   };
@@ -350,7 +348,7 @@ export default function Board({
                     return (
                       <motion.button
                         key={comodin.id}
-                        onClick={() => handleComodinPick(comodin, type)}
+                        onClick={() => handleComodinPick(comodin)}
                         disabled={!!loadingId}
                         whileTap={{ scale: 0.97 }}
                         className={`w-full text-left border rounded-2xl p-4 transition-all hover:border-white/20 disabled:opacity-40 ${typeColor}`}

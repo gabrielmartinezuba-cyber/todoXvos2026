@@ -1,5 +1,5 @@
 import { useAuthStore } from '../store/authStore';
-import { useGameStore } from '../store/gameStore';
+import { useGameStore, type ExtendedGameState } from '../store/gameStore';
 import { Settings, Loader2 } from 'lucide-react';
 import { useState } from 'react';
 import Hand from '../components/Hand';
@@ -16,6 +16,7 @@ export default function GameScreen() {
     outgoingChallenges,
     history,
     isLoading,
+    playCard,
     updateCardStatus,
     useComodinAndResolve,
     playStealCard,
