@@ -18,19 +18,36 @@ interface BoardProps {
 
 type Tab = 'activos' | 'historial';
 
+type HistoryItem = ExtendedGameState & { used_comodin?: string };
+
 // Friendly history event label with perspective
-function historyLabel(item: ExtendedGameState, myId: string): string {
+function historyLabel(item: HistoryItem, myId: string): string {
   const isMe = item.player_id === myId;
+
+  if (item.card.tipo === 'Comodín') {
+    const t = item.card.titulo.toLowerCase();
+    if (t.includes('robo')) {
+      return isMe ? `Robaste una carta con "${item.card.titulo}"` : `Tu pareja usó "${item.card.titulo}"`;
+    }
+    return isMe ? `Usaste "${item.card.titulo}"` : `Tu pareja usó "${item.card.titulo}"`;
+  }
+
+  if (item.used_comodin) {
+    if (item.status === 'bounced') {
+      return isMe ? `Rebotaste "${item.card.titulo}" con ${item.used_comodin}` : `Tu pareja te rebotó "${item.card.titulo}" con ${item.used_comodin}`;
+    }
+    if (item.status === 'discarded') {
+      return isMe ? `Vetaste "${item.card.titulo}" con ${item.used_comodin}` : `Tu pareja vetó "${item.card.titulo}" con ${item.used_comodin}`;
+    }
+  }
 
   switch (item.status) {
     case 'completed': 
       return isMe ? `Cumpliste "${item.card.titulo}"` : `Tu pareja cumplió "${item.card.titulo}"`;
     case 'discarded': 
-      // If it's a challenge, it was vetoed. If it's a wildcard, it was used to veto.
       return isMe ? `Vetaste "${item.card.titulo}"` : `Tu pareja vetó "${item.card.titulo}"`;
     case 'bounced':   
-      // PILAR 2: Ensure we say what was bounced.
-      return isMe ? `Rebotaste "${item.card.titulo}" con Espejito` : `Tu pareja te rebotó "${item.card.titulo}"`;
+      return isMe ? `Rebotaste "${item.card.titulo}"` : `Tu pareja te rebotó "${item.card.titulo}"`;
     default: 
       return item.card.titulo;
   }
@@ -81,8 +98,27 @@ export default function Board({
     return 'discarded'; // veto, negociador, escudo, hoy no
   }
 
-  // PILAR 2: Filter history to show only challenges to avoid double entries
-  const filteredHistory = history.filter(item => item.card.tipo === 'Reto');
+  // PILAR 2 & 4: Group history to handle wildcard usage gracefully
+  const historyGroups = new Map<string, ExtendedGameState[]>();
+  history.forEach(item => {
+    if (!item.resolved_at) return;
+    const group = historyGroups.get(item.resolved_at) || [];
+    group.push(item);
+    historyGroups.set(item.resolved_at, group);
+  });
+
+  const filteredHistory = Array.from(historyGroups.values())
+    .map(group => {
+      const reto = group.find(i => i.card.tipo === 'Reto');
+      const comodin = group.find(i => i.card.tipo === 'Comodín');
+
+      if (reto && comodin) {
+        // Embed the comodín title into the reto for the label
+        return { ...reto, used_comodin: comodin.card.titulo };
+      }
+      return reto || comodin;
+    })
+    .filter(Boolean) as HistoryItem[];
 
   return (
     <div className="w-full px-4">
@@ -310,7 +346,7 @@ export default function Board({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 z-40 bg-slate-950/80 backdrop-blur-sm"
+              className="fixed inset-0 z-40 bg-slate-900/40 backdrop-blur-sm"
               onClick={() => setComodinModalFor(null)}
             />
 
@@ -320,11 +356,11 @@ export default function Board({
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
               transition={{ type: 'spring', stiffness: 340, damping: 32 }}
-              className="fixed bottom-0 left-0 right-0 z-50 max-w-lg mx-auto rounded-t-3xl bg-slate-900 border border-white/10 border-b-0 overflow-hidden"
+              className="fixed bottom-0 left-0 right-0 z-50 max-w-lg mx-auto rounded-t-[3rem] bg-white border border-slate-200 border-b-0 overflow-hidden shadow-2xl"
             >
               {/* Handle */}
-              <div className="flex justify-center pt-3 pb-1">
-                <div className="w-10 h-1 rounded-full bg-white/20" />
+              <div className="flex justify-center pt-4 pb-2">
+                <div className="w-12 h-1.5 rounded-full bg-slate-200" />
               </div>
 
               <div className="px-6 pb-2 pt-4 flex justify-between items-center">

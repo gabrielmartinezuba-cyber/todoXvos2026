@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import type { ExtendedGameState } from '../store/gameStore';
+import { useGameStore, type ExtendedGameState } from '../store/gameStore';
 import { ChevronLeft, ChevronRight, Zap, Heart, Clock, CheckCircle2, XCircle, Shield } from 'lucide-react';
 
 interface HandProps {
@@ -19,8 +19,13 @@ const STATUS_META: Record<string, { label: string; icon: React.ReactNode; color:
 };
 
 export default function Hand({ allCards, activeHand, onPlayCard }: HandProps) {
+  const { incomingChallenges, outgoingChallenges } = useGameStore();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
+
+  // PILAR C: Pacing Rules
+  const isBlockedByIncoming = incomingChallenges.length > 0;
+  const isSpamming = outgoingChallenges.length > 0;
 
   // Sort: active first, used at the end (cemetery)
   const sorted = [...allCards].sort((a, b) => {
@@ -53,8 +58,11 @@ export default function Hand({ allCards, activeHand, onPlayCard }: HandProps) {
     setCurrentIndex(prev => Math.min(Math.max(0, prev + dir), total - 1));
   };
 
+  const isPacingBlocked = !isComodin && (isBlockedByIncoming || isSpamming);
+  const canPlay = isActive && (!isComodin || isSteal) && !isPlaying && !isPacingBlocked;
+
   const handlePlay = async () => {
-    if (!isActive || (isComodin && !isSteal) || isPlaying) return;
+    if (!canPlay) return;
     setIsPlaying(true);
     await onPlayCard(card.id);
     setIsPlaying(false);
@@ -174,33 +182,47 @@ export default function Hand({ allCards, activeHand, onPlayCard }: HandProps) {
           <ChevronLeft className="w-6 h-6" />
         </button>
 
-        {/* Play Button — only for active reto cards */}
-        <motion.button
-          onClick={handlePlay}
-          disabled={!isActive || (isComodin && !isSteal) || isPlaying}
-          whileTap={isActive && (!isComodin || isSteal) ? { scale: 0.95 } : {}}
-          className={`flex-1 h-12 rounded-2xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 transition-all shadow-lg
-            ${isActive && (!isComodin || isSteal)
-              ? isSteal 
-                ? 'bg-rose-500 text-white shadow-rose-500/20 hover:bg-rose-600 cursor-pointer'
-                : 'bg-brand-red text-white shadow-brand-red/20 hover:bg-red-700 cursor-pointer'
-              : 'bg-slate-100 border border-slate-200 text-slate-400 cursor-not-allowed shadow-none'
-            }
-          `}
-        >
-          {isPlaying ? (
-            <motion.div
-              animate={{ rotate: 360 }}
-              transition={{ duration: 0.8, repeat: Infinity, ease: 'linear' }}
-              className="w-4 h-4 border-2 border-white border-t-transparent rounded-full"
-            />
-          ) : (
-            <>
-              <Zap className="w-4 h-4 fill-current" />
-              {isSteal ? 'Robar Carta' : isComodin ? 'Comodín' : !isActive ? 'Carta Usada' : 'Jugar Carta'}
-            </>
+        {/* Play Button Container */}
+        <div className="flex-1 flex flex-col items-center">
+          <motion.button
+            onClick={handlePlay}
+            disabled={!canPlay}
+            whileTap={canPlay ? { scale: 0.95 } : {}}
+            className={`w-full h-12 rounded-2xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 transition-all shadow-lg
+              ${canPlay
+                ? isSteal 
+                  ? 'bg-rose-500 text-white shadow-rose-500/20 hover:bg-rose-600 cursor-pointer'
+                  : 'bg-brand-red text-white shadow-brand-red/20 hover:bg-red-700 cursor-pointer'
+                : 'bg-slate-100 border border-slate-200 text-slate-400 cursor-not-allowed shadow-none'
+              }
+            `}
+          >
+            {isPlaying ? (
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ duration: 0.8, repeat: Infinity, ease: 'linear' }}
+                className="w-4 h-4 border-2 border-slate-400 border-t-transparent rounded-full"
+              />
+            ) : (
+              <>
+                <Zap className="w-4 h-4 fill-current" />
+                {isSteal ? 'Robar Carta' : isComodin ? 'Comodín' : !isActive ? 'Carta Usada' : 'Jugar Carta'}
+              </>
+            )}
+          </motion.button>
+          
+          {/* Pacing Helper Text */}
+          {isActive && !isComodin && isBlockedByIncoming && (
+            <span className="text-[9px] text-rose-500 font-bold uppercase tracking-widest mt-2 text-center leading-tight">
+              Resolvé el reto<br/>recibido primero
+            </span>
           )}
-        </motion.button>
+          {isActive && !isComodin && !isBlockedByIncoming && isSpamming && (
+            <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-2 text-center leading-tight">
+              Esperando que tu pareja<br/>cumpla tu reto
+            </span>
+          )}
+        </div>
 
         <button
           onClick={() => goTo(1)}

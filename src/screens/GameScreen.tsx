@@ -90,21 +90,21 @@ export default function GameScreen() {
       </div>
 
       {/* Header */}
-      <div className="flex justify-between items-center px-6 py-5 relative z-10">
+      <div className="px-6 py-5 relative z-50 flex items-center justify-center">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-2xl bg-white flex items-center justify-center font-black text-lg text-brand-red border border-rose-100 shadow-sm">
             {profile?.display_name?.charAt(0).toUpperCase() || '?'}
           </div>
-          <div>
+          <div className="text-center">
             <h1 className="text-xl font-serif font-black tracking-tight leading-none text-slate-900">todoXvos</h1>
             <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
-              {profile?.display_name} · {profile?.match_code}
+              {profile?.display_name}
             </span>
           </div>
         </div>
 
-        {/* Settings menu */}
-        <div className="relative">
+        {/* Settings menu - absolute positioned */}
+        <div className="absolute top-5 right-6 z-50">
           <button
             onClick={() => setShowSettings(!showSettings)}
             className="w-10 h-10 rounded-2xl bg-white border border-rose-50 flex items-center justify-center text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-all active:scale-90 shadow-sm"
@@ -114,8 +114,8 @@ export default function GameScreen() {
 
           {showSettings && (
             <>
-              <div className="fixed inset-0 z-20" onClick={() => setShowSettings(false)} />
-              <div className="absolute right-0 top-12 z-30 bg-white border border-rose-100 rounded-2xl shadow-2xl overflow-hidden min-w-[180px]">
+              <div className="fixed inset-0 z-40" onClick={() => setShowSettings(false)} />
+              <div className="absolute right-0 top-12 z-50 bg-white border border-rose-100 rounded-2xl shadow-2xl overflow-hidden min-w-[180px]">
                 <button
                   onClick={() => { setShowSettings(false); signOut(); }}
                   className="w-full text-left px-5 py-4 text-sm text-red-500 hover:bg-rose-50 transition-colors font-bold uppercase tracking-wider"

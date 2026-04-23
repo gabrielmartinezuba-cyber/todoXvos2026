@@ -216,7 +216,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
       const now = new Date().toISOString();
       const title = comodin.card.titulo.toLowerCase();
       
-      // Determine effect based on title
+      const isHoyNo = title.includes('hoy no') || title.includes('mañana sí');
       const isBounce = title.includes('espejit') || title.includes('rebotón') || title.includes('espejo');
 
       if (isBounce) {
@@ -237,8 +237,27 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
         ]);
         if (res1.error) throw res1.error;
         if (res2.error) throw res2.error;
+      } else if (isHoyNo) {
+        // PILAR 5: Hoy no, mañana sí - Challenge returns to opponent's hand
+        const [res1, res2] = await Promise.all([
+          supabase
+            .from('game_state')
+            .update({ 
+              status: 'in_hand',
+              player_id: opponentId, 
+              resolved_at: null,
+              played_at: null
+            })
+            .eq('id', challengeId),
+          supabase
+            .from('game_state')
+            .update({ status: 'discarded', resolved_at: now })
+            .eq('id', comodin.id),
+        ]);
+        if (res1.error) throw res1.error;
+        if (res2.error) throw res2.error;
       } else {
-        // PILAR 1: Defensive (Shield, Veto, etc.) - Both cards discarded
+        // Defensive (Shield, Veto, Negociador, etc.) - Both cards discarded
         const [res1, res2] = await Promise.all([
           supabase
             .from('game_state')
