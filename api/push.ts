@@ -59,7 +59,12 @@ export default async function handler(req, res) {
       icon: '/pwa-192x192.png'
     });
 
-    await webpush.sendNotification(profile.push_subscription, payload);
+    const options = {
+      urgency: 'high',
+      TTL: 24 * 60 * 60 // 24 hours
+    };
+
+    await webpush.sendNotification(profile.push_subscription, payload, options);
 
     return res.status(200).json({ success: true });
   } catch (err) {

@@ -30,7 +30,21 @@ function App() {
     if (match?.player2_id && profile?.id) {
       loadGame(match.id, profile.id);
       subscribeToMatch(match.id, profile.id);
-      return () => unsubscribe();
+
+      // PILAR 3: Auto-reconnect on foreground (iOS WebSocket sleep fix)
+      const handleVisibilityChange = () => {
+        if (document.visibilityState === 'visible') {
+          console.log('[App] App became visible, re-syncing game state...');
+          loadGame(match.id, profile.id);
+        }
+      };
+
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+
+      return () => {
+        unsubscribe();
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
+      };
     }
   }, [match?.id, match?.player2_id, profile?.id]);
 
