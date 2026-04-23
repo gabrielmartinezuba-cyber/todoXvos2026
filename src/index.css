@@ -1,0 +1,36 @@
+@import "tailwindcss";
+
+@theme {
+  --color-slate-900: #0B0F19; /* High-end elegant dark mode base */
+  --color-brand-red: #D90429; /* Deep intense red for display */
+}
+
+/* Base styles for the dark elegant aesthetic */
+body {
+  @apply bg-slate-900 text-slate-100 antialiased selection:bg-brand-red selection:text-white;
+}
+
+/* Glassmorphism utilities */
+.glass {
+  @apply bg-white/5 backdrop-blur-md border border-white/10 shadow-xl;
+}
+
+/* Smooth page transitions base */
+.page-enter {
+  opacity: 0;
+  transform: translateY(10px);
+}
+.page-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 300ms, transform 300ms;
+}
+.page-exit {
+  opacity: 1;
+  transform: translateY(0);
+}
+.page-exit-active {
+  opacity: 0;
+  transform: translateY(-10px);
+  transition: opacity 300ms, transform 300ms;
+}
