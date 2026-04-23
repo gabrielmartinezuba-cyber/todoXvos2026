@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import type { ExtendedGameState } from '../store/gameStore';
 import {
   CheckCircle2, Heart, Shield, Clock,
-  X, History, Layers
+  X, History
 } from 'lucide-react';
 
 interface BoardProps {
@@ -16,7 +16,7 @@ interface BoardProps {
   onUseComodin: (challengeId: string, comodin: ExtendedGameState) => Promise<void>;
 }
 
-type Tab = 'activos' | 'historial';
+
 
 type HistoryItem = ExtendedGameState & { used_comodin?: string };
 
@@ -71,11 +71,8 @@ export default function Board({
   onComplete,
   onUseComodin,
 }: BoardProps) {
-  const [tab, setTab] = useState<Tab>('activos');
   const [comodinModalFor, setComodinModalFor] = useState<ExtendedGameState | null>(null);
   const [loadingId, setLoadingId] = useState<string | null>(null);
-
-  const totalActive = incomingChallenges.length + outgoingChallenges.length;
 
   const handleComplete = async (id: string) => {
     setLoadingId(id);
@@ -121,48 +118,7 @@ export default function Board({
     .filter(Boolean) as HistoryItem[];
 
   return (
-    <div className="w-full px-4">
-
-      {/* Tab Bar */}
-      <div className="flex gap-1 bg-slate-100 border border-slate-200 rounded-2xl p-1 mb-6">
-        <button
-          onClick={() => setTab('activos')}
-          className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
-            tab === 'activos'
-              ? 'bg-white text-rose-600 shadow-sm border border-rose-100'
-              : 'text-slate-400 hover:text-slate-600'
-          }`}
-        >
-          <Layers className="w-3.5 h-3.5" />
-          La Mesa
-          {totalActive > 0 && (
-            <span className="bg-brand-red text-white text-[9px] font-black px-1.5 py-0.5 rounded-full">
-              {totalActive}
-            </span>
-          )}
-        </button>
-        <button
-          onClick={() => setTab('historial')}
-          className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
-            tab === 'historial'
-              ? 'bg-white text-rose-600 shadow-sm border border-rose-100'
-              : 'text-slate-400 hover:text-slate-600'
-          }`}
-        >
-          <History className="w-3.5 h-3.5" />
-          Historial
-          {filteredHistory.length > 0 && (
-            <span className="bg-slate-200 text-slate-600 text-[9px] font-black px-1.5 py-0.5 rounded-full">
-              {filteredHistory.length}
-            </span>
-          )}
-        </button>
-      </div>
-
-      <AnimatePresence mode="wait">
-
-        {/* ── TAB: LA MESA (Active challenges) ── */}
-        {tab === 'activos' && (
+    <div className="w-full px-4 space-y-8 pb-8">
           <motion.div
             key="activos"
             initial={{ opacity: 0, y: 8 }}
@@ -290,17 +246,13 @@ export default function Board({
                 )}
               </div>
             </section>
-          </motion.div>
-        )}
+            {/* ── SECCIÓN INFERIOR: HISTORIAL ── */}
+            <section>
+              <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3 flex items-center gap-2">
+                <History className="w-3 h-3" />
+                Historial de Acciones
+              </h3>
 
-        {/* ── TAB: HISTORIAL ── */}
-        {tab === 'historial' && (
-          <motion.div
-            key="historial"
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-          >
                 {filteredHistory.length === 0 ? (
                   <div className="text-center py-12 text-slate-400">
                     <Heart className="w-8 h-8 mx-auto mb-3 opacity-20" />
@@ -333,9 +285,8 @@ export default function Board({
                 ))}
               </div>
             )}
+            </section>
           </motion.div>
-        )}
-      </AnimatePresence>
 
       {/* ── COMODÍN BOTTOM SHEET MODAL ── */}
       <AnimatePresence>

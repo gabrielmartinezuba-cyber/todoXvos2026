@@ -23,6 +23,7 @@ export default function GameScreen() {
   } = useGameStore();
 
   const [showSettings, setShowSettings] = useState(false);
+  const [mainTab, setMainTab] = useState<'actividad' | 'cartas'>('actividad');
   const [pushStatus, setPushStatus] = useState<string>('default');
   const [isSubscribing, setIsSubscribing] = useState(false);
 
@@ -146,7 +147,36 @@ export default function GameScreen() {
       </div>
 
       {/* Content */}
-      <div className="flex-grow flex flex-col relative z-10 overflow-y-auto pb-8">
+      <div className="flex-grow flex flex-col relative z-10 overflow-y-auto pb-8 pt-4">
+        
+        {/* Main Tabs Navigation */}
+        <div className="px-6 mb-6">
+          <div className="flex gap-1.5 bg-slate-100/50 backdrop-blur-md p-1.5 rounded-2xl border border-slate-200/50 shadow-inner">
+            <button
+              onClick={() => setMainTab('actividad')}
+              className={`flex-1 py-3 rounded-xl text-xs font-black uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-2 ${
+                mainTab === 'actividad'
+                  ? 'bg-white text-rose-600 shadow-md border border-rose-100'
+                  : 'text-slate-400 hover:text-slate-600 hover:bg-white/50'
+              }`}
+            >
+              <BellRing className="w-4 h-4" />
+              Actividad
+            </button>
+            <button
+              onClick={() => setMainTab('cartas')}
+              className={`flex-1 py-3 rounded-xl text-xs font-black uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-2 ${
+                mainTab === 'cartas'
+                  ? 'bg-white text-rose-600 shadow-md border border-rose-100'
+                  : 'text-slate-400 hover:text-slate-600 hover:bg-white/50'
+              }`}
+            >
+              <Heart className="w-4 h-4" />
+              Cartas
+            </button>
+          </div>
+        </div>
+
         {isLoading && allPlayerCards.length === 0 ? (
           <div className="flex-grow flex items-center justify-center">
             <div className="text-center">
@@ -165,58 +195,52 @@ export default function GameScreen() {
           </div>
         ) : (
           <>
-            {/* Push Notifications Banner */}
-            {pushStatus === 'default' && (
-              <div className="mx-6 mb-4 bg-white border border-rose-100 rounded-2xl p-4 shadow-sm flex items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-rose-50 flex items-center justify-center flex-shrink-0">
-                    <BellRing className="w-4 h-4 text-brand-red" />
+            {mainTab === 'actividad' && (
+              <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                {/* Push Notifications Banner */}
+                {pushStatus === 'default' && (
+                  <div className="mx-6 mb-4 bg-white border border-rose-100 rounded-2xl p-4 shadow-sm flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-rose-50 flex items-center justify-center flex-shrink-0">
+                        <BellRing className="w-4 h-4 text-brand-red" />
+                      </div>
+                      <div>
+                        <h4 className="text-xs font-black text-slate-900 uppercase tracking-widest">Notificaciones</h4>
+                        <p className="text-[10px] text-slate-500 font-medium">Enterate al instante cuando tu pareja juegue.</p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={handleEnablePush}
+                      disabled={isSubscribing}
+                      className="bg-brand-red hover:bg-red-700 text-white text-[10px] font-black uppercase tracking-widest px-4 py-2 rounded-xl transition-all active:scale-95 whitespace-nowrap flex-shrink-0 disabled:opacity-50"
+                    >
+                      {isSubscribing ? 'Activando...' : 'Activar'}
+                    </button>
                   </div>
-                  <div>
-                    <h4 className="text-xs font-black text-slate-900 uppercase tracking-widest">Notificaciones</h4>
-                    <p className="text-[10px] text-slate-500 font-medium">Enterate al instante cuando tu pareja juegue.</p>
-                  </div>
-                </div>
-                <button
-                  onClick={handleEnablePush}
-                  disabled={isSubscribing}
-                  className="bg-brand-red hover:bg-red-700 text-white text-[10px] font-black uppercase tracking-widest px-4 py-2 rounded-xl transition-all active:scale-95 whitespace-nowrap flex-shrink-0 disabled:opacity-50"
-                >
-                  {isSubscribing ? 'Activando...' : 'Activar'}
-                </button>
+                )}
+
+                {/* Board — La Mesa + Historial */}
+                <Board
+                  incomingChallenges={incomingChallenges}
+                  outgoingChallenges={outgoingChallenges}
+                  history={history}
+                  currentUserId={profile?.id || ''}
+                  myComodines={myComodines}
+                  onComplete={handleComplete}
+                  onUseComodin={handleUseComodin}
+                />
               </div>
             )}
 
-            {/* Board — La Mesa + Historial */}
-            <Board
-              incomingChallenges={incomingChallenges}
-              outgoingChallenges={outgoingChallenges}
-              history={history}
-              currentUserId={profile?.id || ''}
-              myComodines={myComodines}
-              onComplete={handleComplete}
-              onUseComodin={handleUseComodin}
-            />
-
-            {/* Divider */}
-            <div className="mx-6 my-6 border-t border-white/5" />
-
-            {/* Hand section header */}
-            <div className="px-6 mb-2 flex justify-between items-baseline">
-              <h2 className="text-[10px] font-black uppercase tracking-widest text-slate-300">
-                Tu Mazo
-              </h2>
-              <span className="text-[10px] text-slate-300 font-black uppercase tracking-widest">
-                {hand.length} / {allPlayerCards.length} activas
-              </span>
-            </div>
-
-            {/* Stacked Deck */}
-            <Hand
-              allCards={allPlayerCards}
-              activeHand={hand}
-              onPlayCard={handlePlayCard}
-            />
+            {mainTab === 'cartas' && (
+              <div className="flex-1 flex flex-col animate-in fade-in zoom-in-95 duration-500 h-full">
+                <Hand
+                  allCards={allPlayerCards}
+                  activeHand={hand}
+                  onPlayCard={handlePlayCard}
+                />
+              </div>
+            )}
           </>
         )}
       </div>
