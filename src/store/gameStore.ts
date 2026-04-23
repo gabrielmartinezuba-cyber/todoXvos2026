@@ -140,6 +140,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
 
       set({ hand, allPlayerCards, incomingChallenges, outgoingChallenges, history });
     } catch (error: any) {
+      console.error('SUPABASE FETCH ERROR (game_state):', error.message || error);
       set({ error: error.message });
     } finally {
       set({ isLoading: false });

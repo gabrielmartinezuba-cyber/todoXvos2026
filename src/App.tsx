@@ -7,8 +7,14 @@ import GameScreen from './screens/GameScreen';
 import { Loader2 } from 'lucide-react';
 
 function App() {
-  const { initialize, isLoading: authLoading, profile, match } = useAuthStore();
-  const { subscribeToMatch, unsubscribe, loadGame } = useGameStore();
+  const initialize = useAuthStore(state => state.initialize);
+  const profile = useAuthStore(state => state.profile);
+  const match = useAuthStore(state => state.match);
+  const authLoading = useAuthStore(state => state.isLoading);
+
+  const loadGame = useGameStore(state => state.loadGame);
+  const subscribeToMatch = useGameStore(state => state.subscribeToMatch);
+  const unsubscribe = useGameStore(state => state.unsubscribe);
 
   useEffect(() => {
     initialize();
