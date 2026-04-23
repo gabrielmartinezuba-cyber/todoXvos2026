@@ -16,9 +16,9 @@ export default function GameScreen() {
     outgoingChallenges,
     history,
     isLoading,
-    playCard,
     updateCardStatus,
     useComodinAndResolve,
+    playStealCard,
   } = useGameStore();
 
   const [showSettings, setShowSettings] = useState(false);
@@ -28,7 +28,21 @@ export default function GameScreen() {
   const handlePlayCard = async (id: string) => {
     const partnerId =
       match?.player1_id === profile?.id ? match?.player2_id : match?.player1_id;
-    if (partnerId) {
+    if (!partnerId || !profile?.id) return;
+
+    const selectedCard = hand.find(c => c.id === id);
+    const isSteal = selectedCard?.card.titulo.toLowerCase().includes('robo');
+
+    if (isSteal) {
+      // PILAR 1: Robo a Mano Armada - Execute theft logic
+      confetti({
+        particleCount: 150,
+        spread: 100,
+        colors: ['#4f46e5', '#818cf8', '#ffffff'],
+      });
+      await playStealCard(id, profile.id, partnerId);
+    } else {
+      // Normal challenge play
       confetti({
         particleCount: 110,
         spread: 75,
@@ -36,6 +50,14 @@ export default function GameScreen() {
         colors: ['#D90429', '#ffffff', '#4f46e5'],
       });
       await playCard(id, partnerId);
+    }
+  };
+
+  const handleUseComodin = async (challengeId: string, comodin: ExtendedGameState) => {
+    const partnerId =
+      match?.player1_id === profile?.id ? match?.player2_id : match?.player1_id;
+    if (partnerId) {
+      await useComodinAndResolve(challengeId, comodin, partnerId);
     }
   };
 
@@ -130,7 +152,7 @@ export default function GameScreen() {
               currentUserId={profile?.id || ''}
               myComodines={myComodines}
               onComplete={handleComplete}
-              onUseComodin={useComodinAndResolve}
+              onUseComodin={handleUseComodin}
             />
 
             {/* Divider */}

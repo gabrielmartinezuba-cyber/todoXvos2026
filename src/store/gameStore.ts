@@ -28,9 +28,10 @@ interface GameStoreState {
   updateCardStatus: (gameStateId: string, status: GameState['status']) => Promise<void>;
   useComodinAndResolve: (
     challengeId: string,
-    challengeStatus: 'discarded' | 'bounced',
-    comodinId: string
+    comodin: ExtendedGameState,
+    opponentId: string
   ) => Promise<void>;
+  playStealCard: (comodinId: string, userId: string, opponentId: string) => Promise<void>;
   reset: () => void;
 }
 
@@ -199,21 +200,89 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     }
   },
 
-  useComodinAndResolve: async (challengeId, challengeStatus, comodinId) => {
+  useComodinAndResolve: async (challengeId, comodin, opponentId) => {
     try {
       const now = new Date().toISOString();
+      const title = comodin.card.titulo.toLowerCase();
+      
+      // Determine effect based on title
+      const isBounce = title.includes('espejit') || title.includes('rebotón') || title.includes('espejo');
+
+      if (isBounce) {
+        // PILAR 1: Espejito Rebotón - Challenge goes back to opponent, status stays pending
+        const [res1, res2] = await Promise.all([
+          supabase
+            .from('game_state')
+            .update({ 
+              player_id: opponentId, 
+              resolved_at: null, // Still pending but for the other player
+              played_at: now // Reset played_at to current time for the bounce
+            })
+            .eq('id', challengeId),
+          supabase
+            .from('game_state')
+            .update({ status: 'bounced', resolved_at: now })
+            .eq('id', comodin.id),
+        ]);
+        if (res1.error) throw res1.error;
+        if (res2.error) throw res2.error;
+      } else {
+        // PILAR 1: Defensive (Shield, Veto, etc.) - Both cards discarded
+        const [res1, res2] = await Promise.all([
+          supabase
+            .from('game_state')
+            .update({ status: 'discarded', resolved_at: now })
+            .eq('id', challengeId),
+          supabase
+            .from('game_state')
+            .update({ status: 'discarded', resolved_at: now })
+            .eq('id', comodin.id),
+        ]);
+        if (res1.error) throw res1.error;
+        if (res2.error) throw res2.error;
+      }
+    } catch (error: any) {
+      set({ error: error.message });
+    }
+  },
+
+  playStealCard: async (comodinId, userId, opponentId) => {
+    try {
+      const now = new Date().toISOString();
+      
+      // 1. Get opponent's current hand (in_hand cards)
+      const { data: opponentHand, error: fetchError } = await supabase
+        .from('game_state')
+        .select('*')
+        .eq('player_id', opponentId)
+        .eq('status', 'in_hand');
+      
+      if (fetchError) throw fetchError;
+      
+      if (!opponentHand || opponentHand.length === 0) {
+        throw new Error('Tu pareja no tiene cartas para robar.');
+      }
+
+      // 2. Pick a random card
+      const randomIndex = Math.floor(Math.random() * opponentHand.length);
+      const stolenCard = opponentHand[randomIndex];
+
+      // 3. Update DB: Transfer stolen card to me, discard the "Robo" wildcard
       const [res1, res2] = await Promise.all([
         supabase
           .from('game_state')
-          .update({ status: challengeStatus, resolved_at: now })
-          .eq('id', challengeId),
+          .update({ player_id: userId }) // Now it's mine
+          .eq('id', stolenCard.id),
         supabase
           .from('game_state')
           .update({ status: 'discarded', resolved_at: now })
           .eq('id', comodinId),
       ]);
+
       if (res1.error) throw res1.error;
       if (res2.error) throw res2.error;
+      
+      console.log(`[Steal] Card ${stolenCard.card_id} stolen from ${opponentId}`);
     } catch (error: any) {
       set({ error: error.message });
     }

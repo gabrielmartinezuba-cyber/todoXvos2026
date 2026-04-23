@@ -46,6 +46,7 @@ export default function Hand({ allCards, activeHand, onPlayCard }: HandProps) {
 
   const isActive = card.status === 'in_hand';
   const isComodin = card.card.tipo === 'Comodín';
+  const isSteal = card.card.titulo.toLowerCase().includes('robo');
   const meta = STATUS_META[card.status];
 
   const goTo = (dir: 1 | -1) => {
@@ -53,7 +54,7 @@ export default function Hand({ allCards, activeHand, onPlayCard }: HandProps) {
   };
 
   const handlePlay = async () => {
-    if (!isActive || isComodin || isPlaying) return;
+    if (!isActive || (isComodin && !isSteal) || isPlaying) return;
     setIsPlaying(true);
     await onPlayCard(card.id);
     setIsPlaying(false);
@@ -148,7 +149,11 @@ export default function Hand({ allCards, activeHand, onPlayCard }: HandProps) {
               {/* Tipo pill */}
               <div className={`mt-4 text-[10px] uppercase tracking-widest font-bold ${isActive ? accentClass : 'text-slate-700'}`}>
                 {isActive
-                  ? isComodin ? '🛡 Solo para defensa' : '↓ Usá el botón para jugar'
+                  ? isSteal 
+                    ? '⚡ Acción Especial: Robar Carta'
+                    : isComodin 
+                    ? '🛡 Solo para defensa' 
+                    : '↓ Usá el botón para jugar'
                   : ''
                 }
               </div>
@@ -175,11 +180,13 @@ export default function Hand({ allCards, activeHand, onPlayCard }: HandProps) {
         {/* Play Button — only for active reto cards */}
         <motion.button
           onClick={handlePlay}
-          disabled={!isActive || isComodin || isPlaying}
-          whileTap={isActive && !isComodin ? { scale: 0.95 } : {}}
+          disabled={!isActive || (isComodin && !isSteal) || isPlaying}
+          whileTap={isActive && (!isComodin || isSteal) ? { scale: 0.95 } : {}}
           className={`flex-1 h-11 rounded-2xl font-bold text-sm uppercase tracking-widest flex items-center justify-center gap-2 transition-all
-            ${isActive && !isComodin
-              ? 'bg-brand-red text-white shadow-lg shadow-brand-red/30 hover:bg-red-600 cursor-pointer'
+            ${isActive && (!isComodin || isSteal)
+              ? isSteal 
+                ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30 hover:bg-indigo-500 cursor-pointer'
+                : 'bg-brand-red text-white shadow-lg shadow-brand-red/30 hover:bg-red-600 cursor-pointer'
               : 'bg-white/5 border border-white/10 text-slate-600 cursor-not-allowed'
             }
           `}
@@ -193,7 +200,7 @@ export default function Hand({ allCards, activeHand, onPlayCard }: HandProps) {
           ) : (
             <>
               <Zap className="w-4 h-4" />
-              {isComodin ? 'Comodín (Defensa)' : !isActive ? 'Carta Usada' : 'Jugar Carta'}
+              {isSteal ? 'Robar Carta' : isComodin ? 'Comodín (Defensa)' : !isActive ? 'Carta Usada' : 'Jugar Carta'}
             </>
           )}
         </motion.button>

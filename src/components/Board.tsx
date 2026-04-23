@@ -18,13 +18,21 @@ interface BoardProps {
 
 type Tab = 'activos' | 'historial';
 
-// Friendly history event label
-function historyLabel(item: ExtendedGameState): string {
+// Friendly history event label with perspective
+function historyLabel(item: ExtendedGameState, myId: string): string {
+  const isMe = item.player_id === myId;
+  const partnerName = "Tu pareja";
+  const actor = isMe ? "Vos" : partnerName;
+
   switch (item.status) {
-    case 'completed': return `completó "${item.card.titulo}"`;
-    case 'discarded': return `vetó "${item.card.titulo}"`;
-    case 'bounced':   return `rebotó "${item.card.titulo}" con Espejito`;
-    default: return item.card.titulo;
+    case 'completed': 
+      return isMe ? `Completaste "${item.card.titulo}"` : `Tu pareja cumplió "${item.card.titulo}"`;
+    case 'discarded': 
+      return isMe ? `Vetaste "${item.card.titulo}"` : `Tu pareja vetó "${item.card.titulo}"`;
+    case 'bounced':   
+      return isMe ? `Rebotaste "${item.card.titulo}" con Espejito` : `Tu pareja te rebotó "${item.card.titulo}"`;
+    default: 
+      return item.card.titulo;
   }
 }
 
@@ -42,6 +50,7 @@ export default function Board({
   outgoingChallenges,
   history,
   myComodines,
+  currentUserId,
   onComplete,
   onUseComodin,
 }: BoardProps) {
@@ -140,48 +149,64 @@ export default function Board({
                     <motion.div
                       key={item.id}
                       layout
-                      initial={{ opacity: 0, scale: 0.95, y: 12 }}
+                      initial={{ opacity: 0, scale: 0.9, y: 20 }}
                       animate={{ opacity: 1, scale: 1, y: 0 }}
-                      exit={{ opacity: 0, x: 60, scale: 0.9 }}
-                      className="rounded-3xl overflow-hidden border border-brand-red/20 relative"
-                      style={{
-                        background: 'radial-gradient(ellipse at top left, rgba(217,4,41,0.12), transparent 60%), rgba(10,10,20,0.7)',
-                        backdropFilter: 'blur(12px)',
-                      }}
+                      exit={{ opacity: 0, scale: 0.8, y: -20 }}
+                      className="relative group"
                     >
-                      <div className="absolute top-0 right-0 text-[80px] font-black italic text-white/5 leading-none pr-4 pt-2 select-none">!</div>
+                      {/* Physical Card Representation */}
+                      <div 
+                        className="rounded-[2.5rem] overflow-hidden border border-brand-red/30 relative shadow-2xl transition-all duration-500 group-hover:border-brand-red/50"
+                        style={{
+                          background: 'radial-gradient(circle at top right, rgba(217,4,41,0.15), transparent 70%), rgba(15,15,25,0.9)',
+                          backdropFilter: 'blur(20px)',
+                        }}
+                      >
+                        {/* Urgency Pulse Effect */}
+                        <div className="absolute inset-0 bg-brand-red/5 animate-pulse pointer-events-none" />
+                        
+                        <div className="p-8 relative z-10">
+                          <div className="flex justify-between items-start mb-6">
+                            <span className="text-[10px] font-black text-brand-red tracking-[0.3em] uppercase">
+                              {item.card.categoria}
+                            </span>
+                            <div className="w-8 h-8 rounded-full bg-brand-red/20 flex items-center justify-center border border-brand-red/30">
+                              <Sparkles className="w-4 h-4 text-brand-red" />
+                            </div>
+                          </div>
 
-                      <div className="p-5 relative z-10">
-                        <span className="text-[10px] font-black text-brand-red tracking-widest uppercase block mb-1">
-                          {item.card.categoria}
-                        </span>
-                        <h4 className="text-lg font-bold text-white mb-2 leading-tight">{item.card.titulo}</h4>
-                        <p className="text-slate-300 text-sm leading-relaxed mb-5">{item.card.descripcion}</p>
+                          <h4 className="text-2xl font-black text-white mb-4 leading-tight tracking-tight">
+                            {item.card.titulo}
+                          </h4>
+                          
+                          <p className="text-slate-300 text-base leading-relaxed mb-8 font-medium">
+                            {item.card.descripcion}
+                          </p>
 
-                        <div className="flex gap-2 flex-wrap">
-                          {/* Complete */}
-                          <button
-                            onClick={() => handleComplete(item.id)}
-                            disabled={!!loadingId}
-                            className="flex items-center gap-1.5 bg-green-500 hover:bg-green-400 disabled:opacity-40 text-white px-4 py-2 rounded-xl text-sm font-bold transition-all active:scale-95 shadow-lg shadow-green-500/20"
-                          >
-                            {loadingId === item.id
-                              ? <motion.div animate={{ rotate: 360 }} transition={{ duration: 0.8, repeat: Infinity, ease: 'linear' }} className="w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
-                              : <CheckCircle2 className="w-4 h-4" />
-                            }
-                            Completar
-                          </button>
+                          <div className="flex flex-col gap-3">
+                            {/* Complete Button */}
+                            <button
+                              onClick={() => handleComplete(item.id)}
+                              disabled={!!loadingId}
+                              className="w-full flex items-center justify-center gap-3 bg-green-500 hover:bg-green-400 disabled:opacity-40 text-white py-4 rounded-2xl text-base font-black uppercase tracking-widest transition-all active:scale-[0.98] shadow-xl shadow-green-500/20"
+                            >
+                              {loadingId === item.id
+                                ? <motion.div animate={{ rotate: 360 }} transition={{ duration: 0.8, repeat: Infinity, ease: 'linear' }} className="w-5 h-5 border-2 border-white border-t-transparent rounded-full" />
+                                : <CheckCircle2 className="w-5 h-5" />
+                              }
+                              Completar Reto
+                            </button>
 
-                          {/* Comodín picker trigger */}
-                          <button
-                            onClick={() => setComodinModalFor(item)}
-                            disabled={myComodines.length === 0 || !!loadingId}
-                            className="flex items-center gap-1.5 bg-indigo-500/20 hover:bg-indigo-500/35 disabled:opacity-30 disabled:cursor-not-allowed text-indigo-300 px-4 py-2 rounded-xl text-sm font-bold transition-all active:scale-95"
-                          >
-                            <Shield className="w-4 h-4" />
-                            Usar Comodín {myComodines.length === 0 && '🔒'}
-                            <ChevronDown className="w-3.5 h-3.5 opacity-60" />
-                          </button>
+                            {/* Comodín picker trigger */}
+                            <button
+                              onClick={() => setComodinModalFor(item)}
+                              disabled={myComodines.length === 0 || !!loadingId}
+                              className="w-full flex items-center justify-center gap-2 bg-indigo-500/10 hover:bg-indigo-500/20 disabled:opacity-30 disabled:cursor-not-allowed text-indigo-300 py-3 rounded-2xl text-sm font-bold uppercase tracking-wider transition-all border border-indigo-500/20"
+                            >
+                              <Shield className="w-4 h-4" />
+                              Usar Comodín {myComodines.length === 0 ? '🔒' : `(${myComodines.length})`}
+                            </button>
+                          </div>
                         </div>
                       </div>
                     </motion.div>
@@ -257,7 +282,7 @@ export default function Board({
                       {item.status === 'bounced'   && <Shield className="w-4 h-4" />}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium leading-snug">{historyLabel(item)}</p>
+                      <p className="text-sm font-medium leading-snug">{historyLabel(item, currentUserId)}</p>
                       {item.resolved_at && (
                         <p className="text-[10px] opacity-50 mt-0.5">
                           {new Date(item.resolved_at).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
