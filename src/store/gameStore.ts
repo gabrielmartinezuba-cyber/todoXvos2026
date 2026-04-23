@@ -45,15 +45,6 @@ const initialState: Omit<GameStoreState, 'loadGame' | 'subscribeToMatch' | 'unsu
   subscription: null,
 };
 
-// Module-level poller — polls every 2.5s until cards appear in game_state
-let _pollerTimer: ReturnType<typeof setInterval> | null = null;
-function stopPoller() {
-  if (_pollerTimer !== null) {
-    clearInterval(_pollerTimer);
-    _pollerTimer = null;
-  }
-}
-
 export const useGameStore = create<GameStoreState>((set, get) => ({
   ...(initialState as GameStoreState),
 
@@ -69,8 +60,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
       const { data, error } = await supabase
         .from('game_state')
         .select(`*, card:cards (*)`)
-        .eq('match_id', matchId)
-        .order('created_at', { ascending: true });
+        .eq('match_id', matchId);
 
       if (error) throw error;
       if (!data) return;
@@ -159,39 +149,21 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
   subscribeToMatch: (matchId: string, userId: string) => {
     const { subscription, loadGame } = get();
     if (subscription) subscription.unsubscribe();
-    stopPoller();
 
     const newSub = supabase
       .channel(`game_${matchId}_${Date.now()}`)
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'game_state', filter: `match_id=eq.${matchId}` },
-        () => {
-          stopPoller(); // Realtime is working, stop polling
-          loadGame(matchId, userId);
-        }
+        () => loadGame(matchId, userId)
       )
       .subscribe();
 
     set({ subscription: newSub });
-
-    // ── POLLING FALLBACK ─────────────────────────────────────────────────────
-    // If Realtime doesn't fire (e.g. cards were already inserted before sub was ready),
-    // poll every 2.5s until allPlayerCards is populated, then stop.
-    _pollerTimer = setInterval(async () => {
-      const state = get();
-      if (state.allPlayerCards.length > 0) {
-        stopPoller(); // Cards found, no more polling
-        return;
-      }
-      console.log('[Poller] No cards yet, retrying loadGame...');
-      await loadGame(matchId, userId);
-    }, 2500);
   },
 
   unsubscribe: () => {
     const { subscription } = get();
-    stopPoller();
     if (subscription) {
       subscription.unsubscribe();
       set({ subscription: null });

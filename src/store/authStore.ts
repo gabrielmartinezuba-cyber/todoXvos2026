@@ -241,17 +241,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         .select().single();
       if (matchError) throw matchError;
 
-      // ── REDUNDANCY LAYER 1: Guest also attempts deal ──────────────────────
-      // The Host will deal via Realtime IF matches table has Realtime enabled.
-      // The Guest deals here as a FALLBACK — idempotency guard prevents duplicates.
-      // Whoever runs dealCards first wins; second call is a no-op.
-      // Small delay to avoid race condition with the Realtime UPDATE reaching the Host.
       set({ match: matchData });
-
-      // Run in background — don't block routing
-      setTimeout(() => {
-        dealCards(matchData.id, matchData.player1_id, matchData.player2_id);
-      }, 800);
 
     } catch (error: any) {
       set({ error: error.message });
