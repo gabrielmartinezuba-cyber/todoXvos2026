@@ -36,8 +36,9 @@ function App() {
 
   if (authLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-900 text-white">
-        <Loader2 className="w-12 h-12 animate-spin text-brand-red" />
+      <div className="min-h-screen flex flex-col items-center justify-center bg-cream text-slate-400">
+        <Loader2 className="w-10 h-10 animate-spin text-brand-red mb-4" />
+        <span className="text-xs font-black uppercase tracking-[0.3em]">Cargando Amor</span>
       </div>
     );
   }

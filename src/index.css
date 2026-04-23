@@ -1,18 +1,23 @@
 @import "tailwindcss";
 
 @theme {
-  --color-slate-900: #0B0F19; /* High-end elegant dark mode base */
-  --color-brand-red: #D90429; /* Deep intense red for display */
+  --color-brand-red: #D32F2F; /* Romantic Deep Red */
+  --color-brand-rose: #FB7185; /* Soft Rose */
+  --color-cream: #FDFBFB;
 }
 
-/* Base styles for the dark elegant aesthetic */
 body {
-  @apply bg-slate-900 text-slate-100 antialiased selection:bg-brand-red selection:text-white;
+  @apply bg-cream text-slate-800 antialiased selection:bg-brand-red selection:text-white;
+  font-family: 'Inter', sans-serif;
 }
 
-/* Glassmorphism utilities */
+h1, h2, h3, .font-serif {
+  font-family: 'Playfair Display', Georgia, serif;
+}
+
+/* Romantic Glassmorphism */
 .glass {
-  @apply bg-white/5 backdrop-blur-md border border-white/10 shadow-xl;
+  @apply bg-white/60 backdrop-blur-md border border-white/40 shadow-lg;
 }
 
 /* Smooth page transitions base */

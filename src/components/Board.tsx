@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { ExtendedGameState } from '../store/gameStore';
 import {
-  CheckCircle2, Sparkles, Shield, Clock,
+  CheckCircle2, Heart, Shield, Clock,
   X, History, Layers
 } from 'lucide-react';
 
@@ -24,10 +24,12 @@ function historyLabel(item: ExtendedGameState, myId: string): string {
 
   switch (item.status) {
     case 'completed': 
-      return isMe ? `Completaste "${item.card.titulo}"` : `Tu pareja cumplió "${item.card.titulo}"`;
+      return isMe ? `Cumpliste "${item.card.titulo}"` : `Tu pareja cumplió "${item.card.titulo}"`;
     case 'discarded': 
+      // If it's a challenge, it was vetoed. If it's a wildcard, it was used to veto.
       return isMe ? `Vetaste "${item.card.titulo}"` : `Tu pareja vetó "${item.card.titulo}"`;
     case 'bounced':   
+      // PILAR 2: Ensure we say what was bounced.
       return isMe ? `Rebotaste "${item.card.titulo}" con Espejito` : `Tu pareja te rebotó "${item.card.titulo}"`;
     default: 
       return item.card.titulo;
@@ -36,10 +38,10 @@ function historyLabel(item: ExtendedGameState, myId: string): string {
 
 function historyColor(status: string): string {
   switch (status) {
-    case 'completed': return 'text-green-400 bg-green-400/10 border-green-400/20';
-    case 'discarded': return 'text-slate-400 bg-white/5 border-white/10';
-    case 'bounced':   return 'text-indigo-400 bg-indigo-400/10 border-indigo-400/20';
-    default: return 'text-white';
+    case 'completed': return 'text-green-600 bg-green-50 border-green-100';
+    case 'discarded': return 'text-slate-500 bg-slate-50 border-slate-100';
+    case 'bounced':   return 'text-rose-600 bg-rose-50 border-rose-100';
+    default: return 'text-slate-800';
   }
 }
 
@@ -75,21 +77,24 @@ export default function Board({
   // Detect comodin mechanic from card title
   function comodinType(comodin: ExtendedGameState): 'discarded' | 'bounced' {
     const t = comodin.card.titulo.toLowerCase();
-    if (t.includes('espejit') || t.includes('rebotón') || t.includes('robo')) return 'bounced';
+    if (t.includes('espejit') || t.includes('rebotón') || t.includes('rebotar')) return 'bounced';
     return 'discarded'; // veto, negociador, escudo, hoy no
   }
+
+  // PILAR 2: Filter history to show only challenges to avoid double entries
+  const filteredHistory = history.filter(item => item.card.tipo === 'Reto');
 
   return (
     <div className="w-full px-4">
 
       {/* Tab Bar */}
-      <div className="flex gap-1 bg-white/5 border border-white/10 rounded-2xl p-1 mb-6">
+      <div className="flex gap-1 bg-slate-100 border border-slate-200 rounded-2xl p-1 mb-6">
         <button
           onClick={() => setTab('activos')}
-          className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest transition-all ${
+          className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
             tab === 'activos'
-              ? 'bg-white/10 text-white shadow-inner'
-              : 'text-slate-500 hover:text-slate-300'
+              ? 'bg-white text-rose-600 shadow-sm border border-rose-100'
+              : 'text-slate-400 hover:text-slate-600'
           }`}
         >
           <Layers className="w-3.5 h-3.5" />
@@ -102,17 +107,17 @@ export default function Board({
         </button>
         <button
           onClick={() => setTab('historial')}
-          className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest transition-all ${
+          className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
             tab === 'historial'
-              ? 'bg-white/10 text-white shadow-inner'
-              : 'text-slate-500 hover:text-slate-300'
+              ? 'bg-white text-rose-600 shadow-sm border border-rose-100'
+              : 'text-slate-400 hover:text-slate-600'
           }`}
         >
           <History className="w-3.5 h-3.5" />
           Historial
-          {history.length > 0 && (
-            <span className="bg-white/10 text-slate-300 text-[9px] font-black px-1.5 py-0.5 rounded-full">
-              {history.length}
+          {filteredHistory.length > 0 && (
+            <span className="bg-slate-200 text-slate-600 text-[9px] font-black px-1.5 py-0.5 rounded-full">
+              {filteredHistory.length}
             </span>
           )}
         </button>
@@ -154,30 +159,31 @@ export default function Board({
                     >
                       {/* Physical Card Representation */}
                       <div 
-                        className="rounded-[2.5rem] overflow-hidden border border-brand-red/30 relative shadow-2xl transition-all duration-500 group-hover:border-brand-red/50"
-                        style={{
-                          background: 'radial-gradient(circle at top right, rgba(217,4,41,0.15), transparent 70%), rgba(15,15,25,0.9)',
-                          backdropFilter: 'blur(20px)',
-                        }}
+                        className="rounded-[2.5rem] overflow-hidden border border-rose-100 relative shadow-xl transition-all duration-500 group-hover:shadow-2xl group-hover:-translate-y-1 bg-white"
                       >
+                        {/* Subtle romantic watermark */}
+                        <div className="absolute top-0 right-0 p-6 opacity-[0.03]">
+                           <Heart className="w-32 h-32 fill-brand-red" />
+                        </div>
+
                         {/* Urgency Pulse Effect */}
-                        <div className="absolute inset-0 bg-brand-red/5 animate-pulse pointer-events-none" />
+                        <div className="absolute inset-0 bg-rose-500/5 animate-pulse pointer-events-none" />
                         
                         <div className="p-8 relative z-10">
                           <div className="flex justify-between items-start mb-6">
-                            <span className="text-[10px] font-black text-brand-red tracking-[0.3em] uppercase">
+                            <span className="text-[10px] font-black text-rose-600 tracking-[0.3em] uppercase">
                               {item.card.categoria}
                             </span>
-                            <div className="w-8 h-8 rounded-full bg-brand-red/20 flex items-center justify-center border border-brand-red/30">
-                              <Sparkles className="w-4 h-4 text-brand-red" />
+                            <div className="w-8 h-8 rounded-full bg-rose-50 flex items-center justify-center border border-rose-100">
+                              <Heart className="w-4 h-4 text-rose-500 fill-rose-500" />
                             </div>
                           </div>
 
-                          <h4 className="text-2xl font-black text-white mb-4 leading-tight tracking-tight">
+                          <h4 className="text-2xl font-serif font-black text-slate-900 mb-4 leading-tight tracking-tight">
                             {item.card.titulo}
                           </h4>
                           
-                          <p className="text-slate-300 text-base leading-relaxed mb-8 font-medium">
+                          <p className="text-slate-600 text-base leading-relaxed mb-8 font-medium">
                             {item.card.descripcion}
                           </p>
 
@@ -186,7 +192,7 @@ export default function Board({
                             <button
                               onClick={() => handleComplete(item.id)}
                               disabled={!!loadingId}
-                              className="w-full flex items-center justify-center gap-3 bg-green-500 hover:bg-green-400 disabled:opacity-40 text-white py-4 rounded-2xl text-base font-black uppercase tracking-widest transition-all active:scale-[0.98] shadow-xl shadow-green-500/20"
+                              className="w-full flex items-center justify-center gap-3 bg-rose-600 hover:bg-rose-700 disabled:opacity-40 text-white py-4 rounded-2xl text-base font-black uppercase tracking-widest transition-all active:scale-[0.98] shadow-lg shadow-rose-600/20"
                             >
                               {loadingId === item.id
                                 ? <motion.div animate={{ rotate: 360 }} transition={{ duration: 0.8, repeat: Infinity, ease: 'linear' }} className="w-5 h-5 border-2 border-white border-t-transparent rounded-full" />
@@ -199,7 +205,7 @@ export default function Board({
                             <button
                               onClick={() => setComodinModalFor(item)}
                               disabled={myComodines.length === 0 || !!loadingId}
-                              className="w-full flex items-center justify-center gap-2 bg-indigo-500/10 hover:bg-indigo-500/20 disabled:opacity-30 disabled:cursor-not-allowed text-indigo-300 py-3 rounded-2xl text-sm font-bold uppercase tracking-wider transition-all border border-indigo-500/20"
+                              className="w-full flex items-center justify-center gap-2 bg-slate-50 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed text-slate-600 py-3 rounded-2xl text-sm font-bold uppercase tracking-wider transition-all border border-slate-200"
                             >
                               <Shield className="w-4 h-4" />
                               Usar Comodín {myComodines.length === 0 ? '🔒' : `(${myComodines.length})`}
@@ -259,14 +265,14 @@ export default function Board({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
           >
-            {history.length === 0 ? (
-              <div className="text-center py-12 text-slate-600">
-                <History className="w-8 h-8 mx-auto mb-3 opacity-30" />
-                <p className="text-sm">El historial aparece cuando completen o veten un reto.</p>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {[...history].reverse().map((item, i) => (
+                {filteredHistory.length === 0 ? (
+                  <div className="text-center py-12 text-slate-400">
+                    <Heart className="w-8 h-8 mx-auto mb-3 opacity-20" />
+                    <p className="text-sm">El historial aparecerá cuando resuelvan retos.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {[...filteredHistory].reverse().map((item, i) => (
                   <motion.div
                     key={item.id}
                     initial={{ opacity: 0, x: -10 }}
@@ -321,20 +327,20 @@ export default function Board({
                 <div className="w-10 h-1 rounded-full bg-white/20" />
               </div>
 
-              <div className="px-6 pb-2 pt-1 flex justify-between items-center">
+              <div className="px-6 pb-2 pt-4 flex justify-between items-center">
                 <div>
-                  <h3 className="text-white font-bold text-base">Elegí tu Comodín</h3>
-                  <p className="text-slate-500 text-xs mt-0.5">Contra: <span className="text-slate-300 font-medium">"{comodinModalFor.card.titulo}"</span></p>
+                  <h3 className="text-slate-900 font-serif font-black text-xl">Elegí tu Comodín</h3>
+                  <p className="text-slate-500 text-xs mt-0.5">Contra: <span className="text-rose-600 font-bold">"{comodinModalFor.card.titulo}"</span></p>
                 </div>
                 <button
                   onClick={() => setComodinModalFor(null)}
-                  className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-slate-400 hover:text-white"
+                  className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600"
                 >
-                  <X className="w-4 h-4" />
+                  <X className="w-5 h-5" />
                 </button>
               </div>
 
-              <div className="px-4 pb-8 pt-2 space-y-2 max-h-[60vh] overflow-y-auto">
+              <div className="px-4 pb-12 pt-2 space-y-3 max-h-[60vh] overflow-y-auto">
                 {myComodines.length === 0 ? (
                   <p className="text-center text-slate-600 py-8 text-sm">No tenés comodines disponibles.</p>
                 ) : (
@@ -356,15 +362,15 @@ export default function Board({
                         <div className="flex items-start justify-between gap-3">
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-1">
-                              <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
-                              <span className="text-white font-bold text-sm">{comodin.card.titulo}</span>
+                              <Heart className="w-3.5 h-3.5 text-rose-500 fill-rose-500" />
+                              <span className="text-slate-900 font-bold text-sm">{comodin.card.titulo}</span>
                             </div>
-                            <p className="text-slate-400 text-xs leading-relaxed">{comodin.card.descripcion}</p>
+                            <p className="text-slate-500 text-xs leading-relaxed">{comodin.card.descripcion}</p>
                           </div>
-                          <span className={`shrink-0 text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border mt-0.5 ${
+                          <span className={`shrink-0 text-[10px] font-black uppercase tracking-wider px-2 py-1 rounded-full border mt-0.5 ${
                             type === 'bounced'
-                              ? 'text-indigo-300 bg-indigo-500/20 border-indigo-500/30'
-                              : 'text-slate-300 bg-white/10 border-white/20'
+                              ? 'text-rose-600 bg-rose-50 border-rose-100'
+                              : 'text-slate-500 bg-slate-50 border-slate-100'
                           }`}>
                             {typeLabel}
                           </span>

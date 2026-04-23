@@ -82,22 +82,22 @@ export default function GameScreen() {
     outgoingChallenges.length === 0;
 
   return (
-    <div className="min-h-screen bg-slate-900 text-white flex flex-col max-w-lg mx-auto relative shadow-2xl">
+    <div className="min-h-screen bg-cream text-slate-800 flex flex-col max-w-lg mx-auto relative shadow-2xl overflow-hidden">
       {/* Ambient background */}
       <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
-        <div className="absolute top-[-10%] left-[-10%] w-[45%] h-[45%] bg-indigo-600/8 rounded-full blur-[120px]" />
-        <div className="absolute bottom-[-5%] right-[-10%] w-[40%] h-[40%] bg-brand-red/8 rounded-full blur-[120px]" />
+        <div className="absolute top-[-10%] left-[-10%] w-[60%] h-[60%] bg-rose-100/40 rounded-full blur-[100px]" />
+        <div className="absolute bottom-[-5%] right-[-10%] w-[50%] h-[50%] bg-rose-200/30 rounded-full blur-[100px]" />
       </div>
 
       {/* Header */}
       <div className="flex justify-between items-center px-6 py-5 relative z-10">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-2xl bg-white/10 flex items-center justify-center font-black text-base text-brand-red border border-white/15">
+          <div className="w-10 h-10 rounded-2xl bg-white flex items-center justify-center font-black text-lg text-brand-red border border-rose-100 shadow-sm">
             {profile?.display_name?.charAt(0).toUpperCase() || '?'}
           </div>
           <div>
-            <h1 className="text-lg font-black tracking-tight leading-none">todoXvos</h1>
-            <span className="text-[10px] text-slate-600 font-medium uppercase tracking-wider">
+            <h1 className="text-xl font-serif font-black tracking-tight leading-none text-slate-900">todoXvos</h1>
+            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
               {profile?.display_name} · {profile?.match_code}
             </span>
           </div>
@@ -107,7 +107,7 @@ export default function GameScreen() {
         <div className="relative">
           <button
             onClick={() => setShowSettings(!showSettings)}
-            className="w-9 h-9 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 transition-all active:scale-90"
+            className="w-10 h-10 rounded-2xl bg-white border border-rose-50 flex items-center justify-center text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-all active:scale-90 shadow-sm"
           >
             <Settings className="w-4 h-4" />
           </button>
@@ -115,10 +115,10 @@ export default function GameScreen() {
           {showSettings && (
             <>
               <div className="fixed inset-0 z-20" onClick={() => setShowSettings(false)} />
-              <div className="absolute right-0 top-11 z-30 bg-slate-800 border border-white/10 rounded-2xl shadow-2xl overflow-hidden min-w-[160px]">
+              <div className="absolute right-0 top-12 z-30 bg-white border border-rose-100 rounded-2xl shadow-2xl overflow-hidden min-w-[180px]">
                 <button
                   onClick={() => { setShowSettings(false); signOut(); }}
-                  className="w-full text-left px-4 py-3 text-sm text-red-400 hover:bg-white/5 transition-colors font-medium"
+                  className="w-full text-left px-5 py-4 text-sm text-red-500 hover:bg-rose-50 transition-colors font-bold uppercase tracking-wider"
                 >
                   Abandonar Partida
                 </button>
@@ -139,8 +139,11 @@ export default function GameScreen() {
           </div>
         ) : isEmpty ? (
           <div className="flex-grow flex items-center justify-center text-center px-8">
-            <div>
-              <p className="text-slate-500 text-sm">Esperando que se repartan las cartas...</p>
+            <div className="max-w-xs">
+              <div className="w-12 h-12 bg-rose-50 rounded-full flex items-center justify-center mx-auto mb-4 border border-rose-100">
+                <Heart className="w-6 h-6 text-rose-300 animate-pulse" />
+              </div>
+              <p className="text-slate-400 text-sm font-medium leading-relaxed">Esperando que se repartan las cartas para empezar la magia...</p>
             </div>
           </div>
         ) : (
@@ -161,11 +164,11 @@ export default function GameScreen() {
 
             {/* Hand section header */}
             <div className="px-6 mb-2 flex justify-between items-baseline">
-              <h2 className="text-[10px] font-black uppercase tracking-widest text-slate-600">
-                Mi Mano
+              <h2 className="text-[10px] font-black uppercase tracking-widest text-slate-300">
+                Tu Mazo
               </h2>
-              <span className="text-[10px] text-slate-700 font-medium">
-                {hand.filter(c => c.card.tipo !== 'Comodín').length} retos · {myComodines.length} comodines
+              <span className="text-[10px] text-slate-300 font-black uppercase tracking-widest">
+                {hand.length} / {allPlayerCards.length} activas
               </span>
             </div>
 

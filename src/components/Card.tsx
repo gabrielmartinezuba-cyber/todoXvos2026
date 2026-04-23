@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence, useAnimation } from 'framer-motion';
 import type { ExtendedGameState } from '../store/gameStore';
+import { Heart } from 'lucide-react';
 
 interface CardProps {
   item: ExtendedGameState;
@@ -28,8 +29,8 @@ export default function Card({ item, onPlay }: CardProps) {
   };
 
   const isComodin = item.card.tipo === 'Comodín';
-  const accentColor = isComodin ? 'text-indigo-400' : 'text-brand-red';
-  const glowColor = isComodin ? 'shadow-indigo-500/20' : 'shadow-brand-red/20';
+  const accentColor = isComodin ? 'text-rose-600' : 'text-brand-red';
+  const glowColor = isComodin ? 'shadow-rose-500/10' : 'shadow-brand-red/10';
 
   return (
     <motion.div
@@ -45,16 +46,20 @@ export default function Card({ item, onPlay }: CardProps) {
     >
       <motion.div 
         layout
-        className={`bg-white/5 backdrop-blur-xl border border-white/20 shadow-2xl ${glowColor} rounded-3xl p-6 overflow-hidden relative h-full min-h-[24rem] flex flex-col justify-between`}
+        className={`bg-white/80 backdrop-blur-xl border border-white shadow-2xl ${glowColor} rounded-[2.5rem] p-7 overflow-hidden relative h-full min-h-[24rem] flex flex-col justify-between`}
       >
         {/* Decorative subtle background gradient */}
-        <div className={`absolute -top-20 -right-20 w-40 h-40 rounded-full mix-blend-multiply filter blur-3xl opacity-20 ${isComodin ? 'bg-indigo-500' : 'bg-brand-red'}`}></div>
+        <div className={`absolute -top-20 -right-20 w-40 h-40 rounded-full mix-blend-multiply filter blur-3xl opacity-10 ${isComodin ? 'bg-rose-400' : 'bg-brand-red'}`}></div>
         
         <div className="relative z-10 flex-grow">
-          <motion.div layout className={`text-xs font-black tracking-[0.2em] uppercase mb-4 ${accentColor}`}>
-            {item.card.categoria}
-          </motion.div>
-          <motion.h3 layout className="text-2xl font-bold text-white mb-2 leading-tight">
+          <div className="flex justify-between items-center mb-6">
+            <motion.div layout className={`text-[10px] font-black tracking-[0.2em] uppercase ${accentColor}`}>
+              {item.card.categoria}
+            </motion.div>
+            <Heart className={`w-4 h-4 ${accentColor} ${isExpanded ? 'fill-current' : ''}`} />
+          </div>
+
+          <motion.h3 layout className="text-2xl font-serif font-black text-slate-900 mb-4 leading-tight">
             {item.card.titulo}
           </motion.h3>
           
@@ -66,28 +71,28 @@ export default function Card({ item, onPlay }: CardProps) {
                 exit={{ opacity: 0, height: 0 }}
                 className="mt-4"
               >
-                <p className="text-slate-300 leading-relaxed text-sm">
+                <p className="text-slate-600 leading-relaxed text-base font-medium">
                   {item.card.descripcion}
                 </p>
-                <div className="mt-8 pt-4 border-t border-white/10 flex justify-center text-xs text-slate-500 uppercase tracking-widest font-bold">
-                  Tipo: {item.card.tipo}
+                <div className="mt-10 pt-5 border-t border-slate-100 flex justify-center text-[10px] text-slate-400 uppercase tracking-widest font-black">
+                  {item.card.tipo}
                 </div>
               </motion.div>
             )}
           </AnimatePresence>
           
           {!isExpanded && (
-            <motion.p layout className="text-sm text-slate-400 line-clamp-3 mt-4">
+            <motion.p layout className="text-sm text-slate-500 font-medium line-clamp-3 mt-4">
               {item.card.descripcion}
             </motion.p>
           )}
         </div>
 
         {!isExpanded && (
-          <motion.div layout className="relative z-10 mt-6 pt-4 border-t border-white/10 flex justify-center opacity-50">
+          <motion.div layout className="relative z-10 mt-6 pt-4 border-t border-slate-50 flex justify-center opacity-40">
             <div className="flex flex-col items-center gap-1">
-              <div className="w-1 h-1 bg-white rounded-full animate-bounce"></div>
-              <span className="text-[10px] uppercase tracking-widest font-bold">Swipe Up to Play</span>
+              <div className="w-1 h-1 bg-brand-red rounded-full animate-bounce"></div>
+              <span className="text-[10px] uppercase tracking-widest font-black text-slate-900">Deslizá para jugar</span>
             </div>
           </motion.div>
         )}
@@ -100,7 +105,7 @@ export default function Card({ item, onPlay }: CardProps) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm -z-10"
+            className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm -z-10"
             onClick={(e) => {
               e.stopPropagation();
               setIsExpanded(false);

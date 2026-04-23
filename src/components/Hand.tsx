@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { ExtendedGameState } from '../store/gameStore';
-import { ChevronLeft, ChevronRight, Zap, Shield, Clock, CheckCircle2, XCircle } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Zap, Heart, Clock, CheckCircle2, XCircle } from 'lucide-react';
 
 interface HandProps {
   /** Full original inventory (all 25 cards, active and used) */
@@ -12,10 +12,10 @@ interface HandProps {
 }
 
 const STATUS_META: Record<string, { label: string; icon: React.ReactNode; color: string }> = {
-  pending:   { label: 'Enviada',  icon: <Clock className="w-3.5 h-3.5" />,      color: 'text-amber-400 bg-amber-400/10 border-amber-400/20' },
-  completed: { label: 'Cumplida', icon: <CheckCircle2 className="w-3.5 h-3.5" />, color: 'text-green-400 bg-green-400/10 border-green-400/20' },
-  discarded: { label: 'Vetada',   icon: <XCircle className="w-3.5 h-3.5" />,     color: 'text-red-400 bg-red-400/10 border-red-400/20' },
-  bounced:   { label: 'Espejito', icon: <Shield className="w-3.5 h-3.5" />,      color: 'text-indigo-400 bg-indigo-400/10 border-indigo-400/20' },
+  pending:   { label: 'Enviada',  icon: <Clock className="w-3.5 h-3.5" />,      color: 'text-amber-600 bg-amber-50 border-amber-100' },
+  completed: { label: 'Cumplida', icon: <CheckCircle2 className="w-3.5 h-3.5" />, color: 'text-green-600 bg-green-50 border-green-100' },
+  discarded: { label: 'Vetada',   icon: <XCircle className="w-3.5 h-3.5" />,     color: 'text-slate-500 bg-slate-50 border-slate-100' },
+  bounced:   { label: 'Espejito', icon: <Shield className="w-3.5 h-3.5" />,      color: 'text-rose-600 bg-rose-50 border-rose-100' },
 };
 
 export default function Hand({ allCards, activeHand, onPlayCard }: HandProps) {
@@ -62,10 +62,10 @@ export default function Hand({ allCards, activeHand, onPlayCard }: HandProps) {
     if (safeIndex >= total - 1) setCurrentIndex(Math.max(0, safeIndex - 1));
   };
 
-  const accentColor = isComodin ? '#6366f1' : '#D90429';
-  const accentClass = isComodin ? 'text-indigo-400' : 'text-brand-red';
-  const borderClass = isComodin ? 'border-indigo-500/30' : 'border-brand-red/20';
-  const glowClass   = isComodin ? 'bg-indigo-500/15' : 'bg-brand-red/10';
+  const accentColor = isComodin ? '#E11D48' : '#D32F2F';
+  const accentClass = isComodin ? 'text-rose-600' : 'text-brand-red';
+  const borderClass = isComodin ? 'border-rose-200' : 'border-rose-100';
+  const glowClass   = isComodin ? 'bg-rose-500/5' : 'bg-brand-red/5';
 
   return (
     <div className="w-full flex flex-col items-center gap-5 px-4 pt-4 pb-6 select-none">
@@ -80,18 +80,18 @@ export default function Hand({ allCards, activeHand, onPlayCard }: HandProps) {
         {[2, 1].map((depth) => {
           const deckIndex = safeIndex + depth;
           if (deckIndex >= total) return null;
-          return (
-            <div
-              key={`back-${depth}`}
-              className="absolute w-full max-w-xs rounded-3xl bg-white/5 border border-white/10 backdrop-blur-md"
-              style={{
-                height: 340,
-                transform: `translateY(${depth * -10}px) scale(${1 - depth * 0.04})`,
-                zIndex: 10 - depth,
-                opacity: 0.5 - depth * 0.1,
-              }}
-            />
-          );
+            return (
+              <div
+                key={`back-${depth}`}
+                className="absolute w-full max-w-xs rounded-[2.5rem] bg-white border border-slate-100 shadow-sm"
+                style={{
+                  height: 340,
+                  transform: `translateY(${depth * -10}px) scale(${1 - depth * 0.04})`,
+                  zIndex: 10 - depth,
+                  opacity: 0.6 - depth * 0.15,
+                }}
+              />
+            );
         })}
 
         {/* Main Card */}
@@ -102,18 +102,15 @@ export default function Hand({ allCards, activeHand, onPlayCard }: HandProps) {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.88, y: -20 }}
             transition={{ type: 'spring', stiffness: 380, damping: 30 }}
-            className={`absolute w-full max-w-xs rounded-3xl overflow-hidden border backdrop-blur-xl z-20
-              ${isActive ? borderClass : 'border-white/5'}
-              ${isActive ? '' : 'opacity-40 grayscale-[0.7]'}
+            className={`absolute w-full max-w-xs rounded-[2.5rem] overflow-hidden border backdrop-blur-xl z-20 shadow-2xl
+              ${isActive ? borderClass : 'border-slate-100'}
+              ${isActive ? '' : 'opacity-40 grayscale-[0.6]'}
             `}
             style={{
               height: 340,
               background: isActive
-                ? `radial-gradient(ellipse at top right, ${accentColor}22, transparent 60%), rgba(15,15,25,0.85)`
-                : 'rgba(15,15,25,0.6)',
-              boxShadow: isActive
-                ? `0 0 40px ${accentColor}20, inset 0 0 0 1px ${accentColor}20`
-                : 'none',
+                ? `radial-gradient(ellipse at top right, ${accentColor}11, transparent 60%), #FFFFFF`
+                : '#F9FAFB',
             }}
           >
             {/* Status badge for used cards */}
@@ -125,8 +122,8 @@ export default function Hand({ allCards, activeHand, onPlayCard }: HandProps) {
 
             {/* Comodín badge */}
             {isActive && isComodin && (
-              <div className="absolute top-4 right-4 flex items-center gap-1 bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full">
-                <Shield className="w-3 h-3" /> Comodín
+              <div className="absolute top-4 right-4 flex items-center gap-1 bg-rose-50 border border-rose-100 text-rose-600 text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full">
+                <Heart className="w-3 h-3 fill-rose-600" /> Comodín
               </div>
             )}
 
@@ -137,23 +134,23 @@ export default function Hand({ allCards, activeHand, onPlayCard }: HandProps) {
               </span>
 
               {/* Title */}
-              <h3 className={`text-2xl font-bold leading-tight mb-4 ${isActive ? 'text-white' : 'text-slate-500'}`}>
+              <h3 className={`text-2xl font-serif font-black leading-tight mb-4 ${isActive ? 'text-slate-900' : 'text-slate-400'}`}>
                 {card.card.titulo}
               </h3>
 
               {/* Description */}
-              <p className={`text-sm leading-relaxed flex-grow ${isActive ? 'text-slate-300' : 'text-slate-600'}`}>
+              <p className={`text-sm leading-relaxed flex-grow font-medium ${isActive ? 'text-slate-600' : 'text-slate-400'}`}>
                 {card.card.descripcion}
               </p>
 
               {/* Tipo pill */}
-              <div className={`mt-4 text-[10px] uppercase tracking-widest font-bold ${isActive ? accentClass : 'text-slate-700'}`}>
+              <div className={`mt-4 text-[10px] uppercase tracking-widest font-black ${isActive ? accentClass : 'text-slate-300'}`}>
                 {isActive
                   ? isSteal 
-                    ? '⚡ Acción Especial: Robar Carta'
+                    ? '⚡ Acción: Robar Carta'
                     : isComodin 
-                    ? '🛡 Solo para defensa' 
-                    : '↓ Usá el botón para jugar'
+                    ? '🛡 Solo defensa' 
+                    : '↓ Deslizá hacia arriba'
                   : ''
                 }
               </div>
@@ -172,9 +169,9 @@ export default function Hand({ allCards, activeHand, onPlayCard }: HandProps) {
         <button
           onClick={() => goTo(-1)}
           disabled={safeIndex === 0}
-          className="w-11 h-11 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 active:scale-90 transition-all disabled:opacity-20 disabled:cursor-not-allowed"
+          className="w-12 h-12 rounded-2xl bg-white border border-slate-200 flex items-center justify-center text-slate-400 hover:text-rose-600 hover:border-rose-200 active:scale-90 transition-all disabled:opacity-20 disabled:cursor-not-allowed shadow-sm"
         >
-          <ChevronLeft className="w-5 h-5" />
+          <ChevronLeft className="w-6 h-6" />
         </button>
 
         {/* Play Button — only for active reto cards */}
@@ -182,12 +179,12 @@ export default function Hand({ allCards, activeHand, onPlayCard }: HandProps) {
           onClick={handlePlay}
           disabled={!isActive || (isComodin && !isSteal) || isPlaying}
           whileTap={isActive && (!isComodin || isSteal) ? { scale: 0.95 } : {}}
-          className={`flex-1 h-11 rounded-2xl font-bold text-sm uppercase tracking-widest flex items-center justify-center gap-2 transition-all
+          className={`flex-1 h-12 rounded-2xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 transition-all shadow-lg
             ${isActive && (!isComodin || isSteal)
               ? isSteal 
-                ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30 hover:bg-indigo-500 cursor-pointer'
-                : 'bg-brand-red text-white shadow-lg shadow-brand-red/30 hover:bg-red-600 cursor-pointer'
-              : 'bg-white/5 border border-white/10 text-slate-600 cursor-not-allowed'
+                ? 'bg-rose-500 text-white shadow-rose-500/20 hover:bg-rose-600 cursor-pointer'
+                : 'bg-brand-red text-white shadow-brand-red/20 hover:bg-red-700 cursor-pointer'
+              : 'bg-slate-100 border border-slate-200 text-slate-400 cursor-not-allowed shadow-none'
             }
           `}
         >
@@ -199,8 +196,8 @@ export default function Hand({ allCards, activeHand, onPlayCard }: HandProps) {
             />
           ) : (
             <>
-              <Zap className="w-4 h-4" />
-              {isSteal ? 'Robar Carta' : isComodin ? 'Comodín (Defensa)' : !isActive ? 'Carta Usada' : 'Jugar Carta'}
+              <Zap className="w-4 h-4 fill-current" />
+              {isSteal ? 'Robar Carta' : isComodin ? 'Comodín' : !isActive ? 'Carta Usada' : 'Jugar Carta'}
             </>
           )}
         </motion.button>
@@ -208,9 +205,9 @@ export default function Hand({ allCards, activeHand, onPlayCard }: HandProps) {
         <button
           onClick={() => goTo(1)}
           disabled={safeIndex === total - 1}
-          className="w-11 h-11 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 active:scale-90 transition-all disabled:opacity-20 disabled:cursor-not-allowed"
+          className="w-12 h-12 rounded-2xl bg-white border border-slate-200 flex items-center justify-center text-slate-400 hover:text-rose-600 hover:border-rose-200 active:scale-90 transition-all disabled:opacity-20 disabled:cursor-not-allowed shadow-sm"
         >
-          <ChevronRight className="w-5 h-5" />
+          <ChevronRight className="w-6 h-6" />
         </button>
       </div>
 
@@ -222,10 +219,10 @@ export default function Hand({ allCards, activeHand, onPlayCard }: HandProps) {
             onClick={() => setCurrentIndex(i)}
             className={`rounded-full transition-all ${
               i === safeIndex
-                ? 'w-4 h-2 bg-white'
+                ? 'w-4 h-1.5 bg-rose-600'
                 : c.status === 'in_hand'
-                ? 'w-2 h-2 bg-white/30'
-                : 'w-2 h-2 bg-white/10'
+                ? 'w-1.5 h-1.5 bg-rose-200'
+                : 'w-1.5 h-1.5 bg-slate-200'
             }`}
           />
         ))}

@@ -115,26 +115,37 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
       // by looking at non-pending rows with my player_id PLUS all pending rows.
       // Then in the UI, we show pending rows in the BOARD not in the hand.
 
-      // Cards currently assigned to me (in_hand / completed / discarded / bounced)
-      const myCurrentCards = all.filter(r => r.player_id === userId);
+      // ─── PILAR 3: Cemetery & Ownership Logic ───────────────────────────────
+      // Rules:
+      // 1. My hand = cards I hold that are active (in_hand)
+      // 2. Incoming = challenges I received and must act upon (pending)
+      // 3. Outgoing = challenges I sent and am waiting for (pending)
+      // 4. My Cemetery = Challenges I SENT that are now resolved + Wildcards I USED.
+      
+      const myHand = all.filter(r => r.player_id === userId && r.status === 'in_hand');
+      
+      const pending = all.filter(r => r.status === 'pending');
+      const incomingChallenges = pending.filter(r => r.player_id === userId);
+      const outgoingChallenges = pending.filter(r => r.player_id !== userId);
 
-      // Pending cards: could be sent TO me (opponent played) or sent BY me (I played)
-      const pendingCards = all.filter(r => r.status === 'pending');
+      // Cemetery items (for the Hand carousel):
+      // - Cards currently NOT with me that are resolved (Challenges I sent)
+      // - Cards currently WITH me that are resolved and are wildcards (Comodines I used)
+      const myCemetery = all.filter(r => {
+        const isResolved = r.status === 'completed' || r.status === 'discarded' || r.status === 'bounced';
+        if (!isResolved) return false;
+        
+        const wasSentByMe = r.player_id !== userId;
+        const isMyUsedWildcard = r.player_id === userId && r.card.tipo === 'Comodín';
+        
+        return wasSentByMe || isMyUsedWildcard;
+      });
 
-      // Cards sent TO me = pending where player_id IS me (opponent reassigned to me)
-      const incomingChallenges = pendingCards.filter(r => r.player_id === userId);
+      const allPlayerCards = [...myHand, ...myCemetery];
+      const hand = myHand;
 
-      // Cards sent BY me = pending where player_id is NOT me (I reassigned to opponent)
-      // These are my cards that left my hand — still my "inventory" for cemetery
-      const outgoingChallenges = pendingCards.filter(r => r.player_id !== userId);
-
-      // My full original inventory = current cards + cards I played (outgoing)
-      const allPlayerCards = [...myCurrentCards, ...outgoingChallenges];
-
-      // Active hand = only in_hand cards (no pending, no used)
-      const hand = myCurrentCards.filter(r => r.status === 'in_hand');
-
-      // History = resolved cards across the whole match (for feed)
+      // History = Only show challenge resolutions to avoid "double entries" with wildcards
+      // unless specifically needed. We show anything resolved, but in UI we'll prioritize.
       const history = all.filter(r =>
         r.status === 'completed' || r.status === 'discarded' || r.status === 'bounced'
       );
