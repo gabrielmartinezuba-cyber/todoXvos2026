@@ -2,6 +2,7 @@ export type Profile = {
   id: string;
   display_name: string | null;
   match_code: string;
+  push_subscription?: any;
   created_at: string;
 };
 

@@ -16,6 +16,7 @@ interface AuthState {
   signUpAnonymously: (displayName: string) => Promise<void>;
   joinMatch: (matchCode: string) => Promise<void>;
   signOut: () => Promise<void>;
+  subscribeToPushNotifications: () => Promise<boolean>;
   reset: () => void;
 }
 
@@ -261,4 +262,55 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       console.error('Error during signOut:', error);
     }
   },
+
+  subscribeToPushNotifications: async () => {
+    try {
+      const { user, profile } = get();
+      if (!user || !profile) return false;
+
+      if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+        console.warn('Push notifications are not supported by this browser.');
+        return false;
+      }
+
+      const registration = await navigator.serviceWorker.ready;
+      
+      const publicVapidKey = import.meta.env.VITE_PUBLIC_VAPID_KEY;
+      if (!publicVapidKey) {
+        console.error('VITE_PUBLIC_VAPID_KEY is missing');
+        return false;
+      }
+
+      // Convert VAPID key to Uint8Array
+      const padding = '='.repeat((4 - publicVapidKey.length % 4) % 4);
+      const base64 = (publicVapidKey + padding).replace(/-/g, '+').replace(/_/g, '/');
+      const rawData = window.atob(base64);
+      const outputArray = new Uint8Array(rawData.length);
+      for (let i = 0; i < rawData.length; ++i) {
+        outputArray[i] = rawData.charCodeAt(i);
+      }
+
+      const subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: outputArray
+      });
+
+      // Save to Supabase
+      const { error } = await supabase
+        .from('profiles')
+        .update({ push_subscription: subscription })
+        .eq('id', user.id);
+
+      if (error) throw error;
+      
+      // Update local state
+      set({ profile: { ...profile, push_subscription: subscription as any } });
+      return true;
+
+    } catch (error) {
+      console.error('Error subscribing to push:', error);
+      return false;
+    }
+  },
 }));
+

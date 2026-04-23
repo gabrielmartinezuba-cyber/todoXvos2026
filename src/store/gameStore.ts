@@ -194,6 +194,21 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
         })
         .eq('id', gameStateId);
       if (error) throw error;
+
+      // Trigger Web Push Notification
+      const { hand } = get();
+      const card = hand.find(c => c.id === gameStateId)?.card;
+      if (card) {
+        fetch('/api/push', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            target_user_id: targetPlayerId,
+            title: '¡Te mandaron un reto!',
+            body: `Tu pareja te envió el reto "${card.titulo}". ¡Abrí la app para verlo!`
+          })
+        }).catch(err => console.error('Error triggering push:', err));
+      }
     } catch (error: any) {
       set({ error: error.message });
     }

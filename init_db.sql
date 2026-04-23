@@ -6,6 +6,7 @@ CREATE TABLE public.profiles (
     id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
     display_name TEXT,
     match_code TEXT UNIQUE,
+    push_subscription JSONB,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 

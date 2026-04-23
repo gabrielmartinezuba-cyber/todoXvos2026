@@ -1,14 +1,14 @@
 import { useAuthStore } from '../store/authStore';
 import { useGameStore, type ExtendedGameState } from '../store/gameStore';
-import { Settings, Loader2, Heart } from 'lucide-react';
-import { useState } from 'react';
+import { Settings, Loader2, Heart, BellRing } from 'lucide-react';
+import { useState, useEffect } from 'react';
 import Hand from '../components/Hand';
 import Board from '../components/Board';
 import confetti from 'canvas-confetti';
 import { useNotifications } from '../hooks/useNotifications';
 
 export default function GameScreen() {
-  const { signOut, profile, match } = useAuthStore();
+  const { signOut, profile, match, subscribeToPushNotifications } = useAuthStore();
   const {
     hand,
     allPlayerCards,
@@ -23,6 +23,23 @@ export default function GameScreen() {
   } = useGameStore();
 
   const [showSettings, setShowSettings] = useState(false);
+  const [pushStatus, setPushStatus] = useState<string>('default');
+  const [isSubscribing, setIsSubscribing] = useState(false);
+
+  useEffect(() => {
+    if ('Notification' in window) {
+      setPushStatus(Notification.permission);
+    }
+  }, []);
+
+  const handleEnablePush = async () => {
+    setIsSubscribing(true);
+    const success = await subscribeToPushNotifications();
+    if (success && 'Notification' in window) {
+      setPushStatus(Notification.permission);
+    }
+    setIsSubscribing(false);
+  };
 
   useNotifications();
 
@@ -148,6 +165,28 @@ export default function GameScreen() {
           </div>
         ) : (
           <>
+            {/* Push Notifications Banner */}
+            {pushStatus === 'default' && (
+              <div className="mx-6 mb-4 bg-white border border-rose-100 rounded-2xl p-4 shadow-sm flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-rose-50 flex items-center justify-center flex-shrink-0">
+                    <BellRing className="w-4 h-4 text-brand-red" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-black text-slate-900 uppercase tracking-widest">Notificaciones</h4>
+                    <p className="text-[10px] text-slate-500 font-medium">Enterate al instante cuando tu pareja juegue.</p>
+                  </div>
+                </div>
+                <button
+                  onClick={handleEnablePush}
+                  disabled={isSubscribing}
+                  className="bg-brand-red hover:bg-red-700 text-white text-[10px] font-black uppercase tracking-widest px-4 py-2 rounded-xl transition-all active:scale-95 whitespace-nowrap flex-shrink-0 disabled:opacity-50"
+                >
+                  {isSubscribing ? 'Activando...' : 'Activar'}
+                </button>
+              </div>
+            )}
+
             {/* Board — La Mesa + Historial */}
             <Board
               incomingChallenges={incomingChallenges}
