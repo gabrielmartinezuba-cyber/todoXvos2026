@@ -1,235 +1,228 @@
-import { useState, useRef, useEffect } from 'react';
-import { motion, AnimatePresence, useAnimation } from 'framer-motion';
+import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import type { ExtendedGameState } from '../store/gameStore';
-import { CheckCircle2, Clock, ShieldOff } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Zap, Shield, Clock, CheckCircle2, XCircle } from 'lucide-react';
 
 interface HandProps {
-  cards: ExtendedGameState[];
+  /** Full original inventory (all 25 cards, active and used) */
+  allCards: ExtendedGameState[];
+  /** Active hand (in_hand only) — controls what can be played */
+  activeHand: ExtendedGameState[];
   onPlayCard: (id: string) => void;
 }
 
-// Map status → visual state config
-const STATUS_CONFIG: Record<string, {
-  label: string;
-  icon: React.ReactNode;
-  dimmed: boolean;
-}> = {
-  in_hand: { label: '', icon: null, dimmed: false },
-  pending:  { label: 'Enviada',   icon: <Clock className="w-3 h-3" />,       dimmed: true },
-  completed:{ label: 'Cumplida',  icon: <CheckCircle2 className="w-3 h-3" />, dimmed: true },
-  discarded:{ label: 'Vetada',    icon: <ShieldOff className="w-3 h-3" />,    dimmed: true },
-  bounced:  { label: 'Espejito',  icon: <ShieldOff className="w-3 h-3" />,    dimmed: true },
+const STATUS_META: Record<string, { label: string; icon: React.ReactNode; color: string }> = {
+  pending:   { label: 'Enviada',  icon: <Clock className="w-3.5 h-3.5" />,      color: 'text-amber-400 bg-amber-400/10 border-amber-400/20' },
+  completed: { label: 'Cumplida', icon: <CheckCircle2 className="w-3.5 h-3.5" />, color: 'text-green-400 bg-green-400/10 border-green-400/20' },
+  discarded: { label: 'Vetada',   icon: <XCircle className="w-3.5 h-3.5" />,     color: 'text-red-400 bg-red-400/10 border-red-400/20' },
+  bounced:   { label: 'Espejito', icon: <Shield className="w-3.5 h-3.5" />,      color: 'text-indigo-400 bg-indigo-400/10 border-indigo-400/20' },
 };
 
-export default function Hand({ cards, onPlayCard }: HandProps) {
-  const [activeCard, setActiveCard] = useState<ExtendedGameState | null>(null);
+export default function Hand({ allCards, activeHand, onPlayCard }: HandProps) {
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
 
-  const containerRef = useRef<HTMLDivElement>(null);
-  const innerRef = useRef<HTMLDivElement>(null);
-  const [constraints, setConstraints] = useState({ left: 0, right: 0 });
-
-  useEffect(() => {
-    const updateConstraints = () => {
-      if (containerRef.current && innerRef.current) {
-        const innerWidth = innerRef.current.scrollWidth;
-        const containerWidth = containerRef.current.offsetWidth;
-        if (innerWidth > containerWidth) {
-          setConstraints({ right: 0, left: -(innerWidth - containerWidth + 48) });
-        } else {
-          setConstraints({ left: 0, right: 0 });
-        }
-      }
-    };
-    updateConstraints();
-    window.addEventListener('resize', updateConstraints);
-    return () => window.removeEventListener('resize', updateConstraints);
-  }, [cards.length]);
-
-  const controls = useAnimation();
-  const isComodin = (item: ExtendedGameState) => item.card.tipo === 'Comodín';
-  const isActive   = (item: ExtendedGameState) => item.status === 'in_hand';
-
-  const handleDragEnd = async (_event: any, info: any) => {
-    if (!activeCard) return;
-
-    // Blocked: comodines and already-used cards spring back
-    if (isComodin(activeCard) || !isActive(activeCard)) {
-      controls.start({ y: 0, opacity: 1, transition: { type: 'spring', stiffness: 400 } });
-      return;
-    }
-
-    if (info.offset.y < -60) {
-      await controls.start({
-        y: -1200,
-        opacity: 0,
-        transition: { duration: 0.35, ease: [0.16, 1, 0.3, 1] }
-      });
-      onPlayCard(activeCard.id);
-      setActiveCard(null);
-    } else {
-      controls.start({ y: 0, opacity: 1, transition: { type: 'spring', stiffness: 500, damping: 30 } });
-    }
-  };
-
-  // Sort: in_hand first, then the rest (cemetery at the end)
-  const sorted = [...cards].sort((a, b) => {
+  // Sort: active first, used at the end (cemetery)
+  const sorted = [...allCards].sort((a, b) => {
     if (a.status === 'in_hand' && b.status !== 'in_hand') return -1;
     if (a.status !== 'in_hand' && b.status === 'in_hand') return 1;
+    // Comodines last within active
+    if (a.card.tipo === 'Comodín' && b.card.tipo !== 'Comodín') return 1;
+    if (a.card.tipo !== 'Comodín' && b.card.tipo === 'Comodín') return -1;
     return 0;
   });
 
+  const total = sorted.length;
+  const safeIndex = Math.min(currentIndex, total - 1);
+  const card = sorted[safeIndex];
+
+  if (!card) {
+    return (
+      <div className="flex items-center justify-center py-16 text-slate-600 text-sm">
+        No hay cartas en tu mano.
+      </div>
+    );
+  }
+
+  const isActive = card.status === 'in_hand';
+  const isComodin = card.card.tipo === 'Comodín';
+  const meta = STATUS_META[card.status];
+
+  const goTo = (dir: 1 | -1) => {
+    setCurrentIndex(prev => Math.min(Math.max(0, prev + dir), total - 1));
+  };
+
+  const handlePlay = async () => {
+    if (!isActive || isComodin || isPlaying) return;
+    setIsPlaying(true);
+    await onPlayCard(card.id);
+    setIsPlaying(false);
+    // Move to next available card
+    if (safeIndex >= total - 1) setCurrentIndex(Math.max(0, safeIndex - 1));
+  };
+
+  const accentColor = isComodin ? '#6366f1' : '#D90429';
+  const accentClass = isComodin ? 'text-indigo-400' : 'text-brand-red';
+  const borderClass = isComodin ? 'border-indigo-500/30' : 'border-brand-red/20';
+  const glowClass   = isComodin ? 'bg-indigo-500/15' : 'bg-brand-red/10';
+
   return (
-    <>
-      {/* Carousel */}
-      <div className="w-full overflow-hidden" ref={containerRef}>
-        <motion.div
-          ref={innerRef}
-          drag="x"
-          dragConstraints={constraints}
-          dragElastic={0.1}
-          className="flex gap-3 pb-12 pt-4 px-6 w-max cursor-grab active:cursor-grabbing"
-        >
-          {sorted.map((item) => {
-            const cfg = STATUS_CONFIG[item.status] ?? STATUS_CONFIG.in_hand;
-            const cardIsComodin = isComodin(item);
-            const active = isActive(item);
-            const accentColor = cardIsComodin ? 'text-indigo-400' : 'text-brand-red';
-
-            return (
-              <motion.div
-                key={item.id}
-                layoutId={`card-${item.id}`}
-                onClick={() => {
-                  // Only expandable if still in hand
-                  if (active) setActiveCard(item);
-                }}
-                initial={{ opacity: 0, scale: 0.85 }}
-                animate={{
-                  opacity: activeCard?.id === item.id ? 0 : cfg.dimmed ? 0.35 : 1,
-                  scale: cfg.dimmed ? 0.93 : 1,
-                  filter: cfg.dimmed ? 'grayscale(0.75)' : 'grayscale(0)',
-                }}
-                transition={{ duration: 0.3 }}
-                className={`
-                  bg-white/5 backdrop-blur-xl border rounded-3xl p-5 relative w-60 h-76 flex flex-col justify-between shrink-0 overflow-hidden
-                  ${active ? 'border-white/20 cursor-pointer hover:border-white/35 transition-colors' : 'border-white/5 cursor-default pointer-events-none'}
-                  ${activeCard?.id === item.id ? 'pointer-events-none' : ''}
-                `}
-              >
-                {/* Background orb — muted when dimmed */}
-                <div className={`absolute -top-16 -right-16 w-36 h-36 rounded-full mix-blend-multiply filter blur-3xl transition-opacity duration-500 ${cardIsComodin ? 'bg-indigo-500' : 'bg-brand-red'} ${cfg.dimmed ? 'opacity-0' : 'opacity-20'}`} />
-
-                {/* Status badge overlay */}
-                {cfg.dimmed && (
-                  <div className="absolute top-3 left-3 flex items-center gap-1 bg-black/40 border border-white/10 text-white/50 text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full backdrop-blur-sm">
-                    {cfg.icon}
-                    {cfg.label}
-                  </div>
-                )}
-
-                {/* Comodín badge */}
-                {cardIsComodin && active && (
-                  <div className="absolute top-3 right-3 bg-indigo-500/30 border border-indigo-400/40 text-indigo-300 text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full">
-                    Comodín
-                  </div>
-                )}
-
-                <div className="relative z-10 mt-6">
-                  <div className={`text-[10px] font-black tracking-[0.2em] uppercase mb-3 ${cfg.dimmed ? 'text-slate-600' : accentColor}`}>
-                    {item.card.categoria}
-                  </div>
-                  <h3 className={`text-lg font-bold leading-tight mb-2 ${cfg.dimmed ? 'text-slate-500' : 'text-white'}`}>
-                    {item.card.titulo}
-                  </h3>
-                  <p className={`text-xs line-clamp-3 mt-2 ${cfg.dimmed ? 'text-slate-700' : 'text-slate-400'}`}>
-                    {item.card.descripcion}
-                  </p>
-                </div>
-
-                <div className={`relative z-10 text-[9px] uppercase tracking-widest font-bold mt-2 ${cfg.dimmed ? 'text-slate-700' : cardIsComodin ? 'text-indigo-500/60' : 'text-slate-600'}`}>
-                  {cfg.dimmed ? '' : cardIsComodin ? '🛡 Solo para defensa' : '↑ Tocá para expandir'}
-                </div>
-              </motion.div>
-            );
-          })}
-
-          {cards.length === 0 && (
-            <div className="py-12 flex flex-col items-center justify-center text-slate-500 border border-dashed border-white/10 rounded-3xl mx-6" style={{ minWidth: 'calc(100vw - 3rem)' }}>
-              <span className="text-sm tracking-widest uppercase mb-2">Mano Vacía</span>
-              <span className="text-xs">Esperando cartas...</span>
-            </div>
-          )}
-        </motion.div>
+    <div className="w-full flex flex-col items-center gap-5 px-4 pt-4 pb-6 select-none">
+      {/* Counter */}
+      <div className="text-xs text-slate-500 font-bold uppercase tracking-widest">
+        {safeIndex + 1} / {total} · {activeHand.length} activas
       </div>
 
-      {/* Expanded Card Overlay — only for in_hand cards */}
-      <AnimatePresence>
-        {activeCard && (
-          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center px-4 pb-8 sm:pb-0">
-            {/* Backdrop */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-slate-950/85 backdrop-blur-md"
-              onClick={() => setActiveCard(null)}
+      {/* Stacked Deck */}
+      <div className="relative w-full max-w-xs flex items-center justify-center" style={{ height: 380 }}>
+        {/* Back cards (depth effect) */}
+        {[2, 1].map((depth) => {
+          const deckIndex = safeIndex + depth;
+          if (deckIndex >= total) return null;
+          return (
+            <div
+              key={`back-${depth}`}
+              className="absolute w-full max-w-xs rounded-3xl bg-white/5 border border-white/10 backdrop-blur-md"
+              style={{
+                height: 340,
+                transform: `translateY(${depth * -10}px) scale(${1 - depth * 0.04})`,
+                zIndex: 10 - depth,
+                opacity: 0.5 - depth * 0.1,
+              }}
             />
+          );
+        })}
 
-            <motion.div
-              layoutId={`card-${activeCard.id}`}
-              drag="y"
-              dragConstraints={{ top: -20, bottom: 80 }}
-              onDragEnd={handleDragEnd}
-              animate={controls}
-              className="w-full max-w-sm bg-white/10 backdrop-blur-2xl border border-white/20 shadow-2xl rounded-[2rem] p-8 relative overflow-hidden flex flex-col z-10"
-              style={{ minHeight: '55vh' }}
-            >
-              <div className={`absolute -top-20 -right-20 w-48 h-48 rounded-full filter blur-3xl opacity-30 ${isComodin(activeCard) ? 'bg-indigo-500' : 'bg-brand-red'}`} />
-
-              <div className="relative z-10 flex-grow flex flex-col">
-                <motion.div layout className={`text-xs font-black tracking-[0.2em] uppercase mb-3 ${isComodin(activeCard) ? 'text-indigo-400' : 'text-brand-red'}`}>
-                  {activeCard.card.categoria}
-                </motion.div>
-                <motion.h3 layout className="text-3xl font-bold text-white mb-6 leading-tight">
-                  {activeCard.card.titulo}
-                </motion.h3>
-
-                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 }}>
-                  <p className="text-slate-200 leading-relaxed text-base">{activeCard.card.descripcion}</p>
-                  <div className="mt-6 pt-4 border-t border-white/10 flex justify-center text-xs text-slate-500 uppercase tracking-widest font-bold">
-                    Tipo: {activeCard.card.tipo}
-                  </div>
-                </motion.div>
+        {/* Main Card */}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={card.id}
+            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.88, y: -20 }}
+            transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+            className={`absolute w-full max-w-xs rounded-3xl overflow-hidden border backdrop-blur-xl z-20
+              ${isActive ? borderClass : 'border-white/5'}
+              ${isActive ? '' : 'opacity-40 grayscale-[0.7]'}
+            `}
+            style={{
+              height: 340,
+              background: isActive
+                ? `radial-gradient(ellipse at top right, ${accentColor}22, transparent 60%), rgba(15,15,25,0.85)`
+                : 'rgba(15,15,25,0.6)',
+              boxShadow: isActive
+                ? `0 0 40px ${accentColor}20, inset 0 0 0 1px ${accentColor}20`
+                : 'none',
+            }}
+          >
+            {/* Status badge for used cards */}
+            {!isActive && meta && (
+              <div className={`absolute top-4 right-4 flex items-center gap-1.5 border text-xs font-bold px-3 py-1 rounded-full ${meta.color}`}>
+                {meta.icon} {meta.label}
               </div>
+            )}
 
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.2 }}
-                className="relative z-10 mt-6 pt-5 border-t border-white/10 flex justify-center"
-              >
-                {isComodin(activeCard) ? (
-                  <div className="flex items-center gap-2 text-indigo-300 text-xs font-bold uppercase tracking-widest">
-                    <span>🛡</span>
-                    <span>Usalo para defenderte de un Reto</span>
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center gap-1">
-                    <motion.div
-                      animate={{ y: [0, -6, 0] }}
-                      transition={{ duration: 1.2, repeat: Infinity }}
-                      className="w-1.5 h-1.5 bg-white rounded-full"
-                    />
-                    <span className="text-[10px] uppercase tracking-widest font-bold text-slate-300">
-                      Swipe Up to Play
-                    </span>
-                  </div>
-                )}
-              </motion.div>
-            </motion.div>
-          </div>
+            {/* Comodín badge */}
+            {isActive && isComodin && (
+              <div className="absolute top-4 right-4 flex items-center gap-1 bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full">
+                <Shield className="w-3 h-3" /> Comodín
+              </div>
+            )}
+
+            <div className="p-7 flex flex-col h-full">
+              {/* Category */}
+              <span className={`text-[10px] font-black tracking-[0.2em] uppercase mb-4 block ${isActive ? accentClass : 'text-slate-600'}`}>
+                {card.card.categoria}
+              </span>
+
+              {/* Title */}
+              <h3 className={`text-2xl font-bold leading-tight mb-4 ${isActive ? 'text-white' : 'text-slate-500'}`}>
+                {card.card.titulo}
+              </h3>
+
+              {/* Description */}
+              <p className={`text-sm leading-relaxed flex-grow ${isActive ? 'text-slate-300' : 'text-slate-600'}`}>
+                {card.card.descripcion}
+              </p>
+
+              {/* Tipo pill */}
+              <div className={`mt-4 text-[10px] uppercase tracking-widest font-bold ${isActive ? accentClass : 'text-slate-700'}`}>
+                {isActive
+                  ? isComodin ? '🛡 Solo para defensa' : '↓ Usá el botón para jugar'
+                  : ''
+                }
+              </div>
+            </div>
+          </motion.div>
+        </AnimatePresence>
+
+        {/* Glow for active card */}
+        {isActive && (
+          <div className={`absolute inset-0 rounded-3xl pointer-events-none z-10 ${glowClass} blur-3xl scale-75 opacity-30`} />
         )}
-      </AnimatePresence>
-    </>
+      </div>
+
+      {/* Navigation Row */}
+      <div className="flex items-center gap-4 w-full max-w-xs">
+        <button
+          onClick={() => goTo(-1)}
+          disabled={safeIndex === 0}
+          className="w-11 h-11 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 active:scale-90 transition-all disabled:opacity-20 disabled:cursor-not-allowed"
+        >
+          <ChevronLeft className="w-5 h-5" />
+        </button>
+
+        {/* Play Button — only for active reto cards */}
+        <motion.button
+          onClick={handlePlay}
+          disabled={!isActive || isComodin || isPlaying}
+          whileTap={isActive && !isComodin ? { scale: 0.95 } : {}}
+          className={`flex-1 h-11 rounded-2xl font-bold text-sm uppercase tracking-widest flex items-center justify-center gap-2 transition-all
+            ${isActive && !isComodin
+              ? 'bg-brand-red text-white shadow-lg shadow-brand-red/30 hover:bg-red-600 cursor-pointer'
+              : 'bg-white/5 border border-white/10 text-slate-600 cursor-not-allowed'
+            }
+          `}
+        >
+          {isPlaying ? (
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{ duration: 0.8, repeat: Infinity, ease: 'linear' }}
+              className="w-4 h-4 border-2 border-white border-t-transparent rounded-full"
+            />
+          ) : (
+            <>
+              <Zap className="w-4 h-4" />
+              {isComodin ? 'Comodín (Defensa)' : !isActive ? 'Carta Usada' : 'Jugar Carta'}
+            </>
+          )}
+        </motion.button>
+
+        <button
+          onClick={() => goTo(1)}
+          disabled={safeIndex === total - 1}
+          className="w-11 h-11 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 active:scale-90 transition-all disabled:opacity-20 disabled:cursor-not-allowed"
+        >
+          <ChevronRight className="w-5 h-5" />
+        </button>
+      </div>
+
+      {/* Dot indicators */}
+      <div className="flex gap-1.5 flex-wrap justify-center max-w-xs">
+        {sorted.map((c, i) => (
+          <button
+            key={c.id}
+            onClick={() => setCurrentIndex(i)}
+            className={`rounded-full transition-all ${
+              i === safeIndex
+                ? 'w-4 h-2 bg-white'
+                : c.status === 'in_hand'
+                ? 'w-2 h-2 bg-white/30'
+                : 'w-2 h-2 bg-white/10'
+            }`}
+          />
+        ))}
+      </div>
+    </div>
   );
 }
