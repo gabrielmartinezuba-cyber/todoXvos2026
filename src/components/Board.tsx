@@ -90,8 +90,9 @@ export default function Board({
 
   // Detect comodin mechanic from card title
   function comodinType(comodin: ExtendedGameState): 'discarded' | 'bounced' {
-    const t = comodin.card.titulo.toLowerCase();
-    if (t.includes('espejit') || t.includes('rebotón') || t.includes('rebotar')) return 'bounced';
+    const t = comodin.card.titulo;
+    const isBounce = comodin.card.tipo === 'Comodín' && (t === 'Espejito Rebotón' || t === 'El Rebotón' || t === 'Espejo');
+    if (isBounce) return 'bounced';
     return 'discarded'; // veto, negociador, escudo, hoy no
   }
 

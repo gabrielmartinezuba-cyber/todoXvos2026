@@ -50,7 +50,7 @@ export default function GameScreen() {
     if (!partnerId || !profile?.id) return;
 
     const selectedCard = hand.find(c => c.id === id);
-    const isSteal = selectedCard?.card.titulo.toLowerCase().includes('robo');
+    const isSteal = selectedCard?.card.tipo === 'Comodín' && selectedCard?.card.titulo === 'Robo a Mano Armada';
 
     if (isSteal) {
       // PILAR 1: Robo a Mano Armada - Execute theft logic

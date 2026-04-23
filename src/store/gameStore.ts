@@ -229,10 +229,10 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
   useComodinAndResolve: async (challengeId, comodin, opponentId) => {
     try {
       const now = new Date().toISOString();
-      const title = comodin.card.titulo.toLowerCase();
+      const title = comodin.card.titulo;
       
-      const isHoyNo = title.includes('hoy no') || title.includes('mañana sí');
-      const isBounce = title.includes('espejit') || title.includes('rebotón') || title.includes('espejo');
+      const isHoyNo = comodin.card.tipo === 'Comodín' && (title === 'Hoy no, mañana sí' || title === 'Mañana sí');
+      const isBounce = comodin.card.tipo === 'Comodín' && (title === 'Espejito Rebotón' || title === 'El Rebotón' || title === 'Espejo');
 
       if (isBounce) {
         // PILAR 1: Espejito Rebotón - Challenge goes back to opponent, status stays pending

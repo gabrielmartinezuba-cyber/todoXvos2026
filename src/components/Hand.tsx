@@ -58,7 +58,7 @@ export default function Hand({ allCards, activeHand, onPlayCard }: HandProps) {
 
   const isActive = card.status === 'in_hand';
   const isComodin = card.card.tipo === 'Comodín';
-  const isSteal = card.card.titulo.toLowerCase().includes('robo');
+  const isSteal = card.card.tipo === 'Comodín' && card.card.titulo === 'Robo a Mano Armada';
   const meta = STATUS_META[card.status];
 
   const goTo = (dir: 1 | -1) => {
