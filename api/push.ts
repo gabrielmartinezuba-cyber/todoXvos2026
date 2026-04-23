@@ -56,7 +56,7 @@ export default async function handler(req, res) {
     const payload = JSON.stringify({
       title,
       body,
-      icon: '/favicon.svg'
+      icon: '/pwa-192x192.png'
     });
 
     await webpush.sendNotification(profile.push_subscription, payload);

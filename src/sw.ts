@@ -11,8 +11,8 @@ self.addEventListener('push', (event) => {
   const title = data.title || 'Nueva notificación de todoXvos';
   const options = {
     body: data.body || '¡Tenés una novedad en el juego!',
-    icon: '/favicon.svg',
-    badge: '/favicon.svg',
+    icon: '/pwa-192x192.png',
+    badge: '/pwa-192x192.png',
     vibrate: [200, 100, 200],
     data: {
       url: self.registration.scope
