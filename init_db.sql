@@ -132,5 +132,7 @@ CREATE POLICY "Users can update game state of their matches" ON public.game_stat
     )
 );
 
--- Enable Realtime for game_state
+-- Enable Realtime for game_state and matches
 ALTER PUBLICATION supabase_realtime ADD TABLE public.game_state;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.matches;
+

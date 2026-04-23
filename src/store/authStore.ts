@@ -28,58 +28,72 @@ const initialState = {
   error: null,
 };
 
-// ─── DEALER ──────────────────────────────────────────────────────────────────
-// Runs ONLY on the Host client (player1_id === current user).
-// Fetches all 50 cards, shuffles, and inserts 25 to each player.
-// Idempotent: checks game_state row count first to prevent double-dealing.
-async function dealCards(matchId: string, player1Id: string, player2Id: string) {
-  // Guard: if cards already dealt, bail out immediately
-  const { count } = await supabase
-    .from('game_state')
-    .select('*', { count: 'exact', head: true })
-    .eq('match_id', matchId);
+// ─── DEALER FUNCTION (idempotent) ─────────────────────────────────────────────
+// Can be called by any player — the idempotency guard ensures only one deal happens.
+// Fisher-Yates shuffle for statistically correct randomness.
+export async function dealCards(matchId: string, player1Id: string, player2Id: string): Promise<boolean> {
+  try {
+    // Guard: abort if cards already exist for this match
+    const { count, error: countError } = await supabase
+      .from('game_state')
+      .select('*', { count: 'exact', head: true })
+      .eq('match_id', matchId);
 
-  if (count && count > 0) {
-    console.log('[Dealer] Cards already dealt, skipping.');
-    return;
-  }
+    if (countError) {
+      console.error('[Dealer] Count check failed:', countError);
+      return false;
+    }
+    if (count && count > 0) {
+      console.log('[Dealer] Cards already dealt:', count);
+      return true;
+    }
 
-  const { data: cards, error } = await supabase.from('cards').select('*');
-  if (error || !cards || cards.length < 44) {
-    console.error('[Dealer] Failed to fetch cards or not enough cards:', error, cards?.length);
-    return;
-  }
+    // Fetch all cards
+    const { data: cards, error: cardsError } = await supabase.from('cards').select('*');
+    if (cardsError || !cards) {
+      console.error('[Dealer] Failed to fetch cards:', cardsError);
+      return false;
+    }
 
-  // Fisher-Yates shuffle
-  const deck = [...cards];
-  for (let i = deck.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [deck[i], deck[j]] = [deck[j], deck[i]];
-  }
+    const retos    = cards.filter(c => c.tipo === 'Reto');
+    const comodines = cards.filter(c => c.tipo === 'Comodín');
 
-  const retos   = deck.filter(c => c.tipo === 'Reto');
-  const comodines = deck.filter(c => c.tipo === 'Comodín');
+    if (retos.length < 44 || comodines.length < 6) {
+      console.error('[Dealer] Not enough cards. Retos:', retos.length, 'Comodines:', comodines.length);
+      return false;
+    }
 
-  if (retos.length < 44 || comodines.length < 6) {
-    console.error('[Dealer] Not enough retos or comodines:', retos.length, comodines.length);
-    return;
-  }
+    // Fisher-Yates shuffle
+    const shuffleArr = <T>(arr: T[]): T[] => {
+      const a = [...arr];
+      for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+      }
+      return a;
+    };
 
-  const now = new Date().toISOString();
-  const assignments = [
-    // 22 retos each
-    ...retos.slice(0, 22).map(c  => ({ match_id: matchId, card_id: c.id, player_id: player1Id, status: 'in_hand', created_at: now })),
-    ...retos.slice(22, 44).map(c => ({ match_id: matchId, card_id: c.id, player_id: player2Id, status: 'in_hand', created_at: now })),
-    // 3 comodines each
-    ...comodines.slice(0, 3).map(c => ({ match_id: matchId, card_id: c.id, player_id: player1Id, status: 'in_hand', created_at: now })),
-    ...comodines.slice(3, 6).map(c => ({ match_id: matchId, card_id: c.id, player_id: player2Id, status: 'in_hand', created_at: now })),
-  ];
+    const shuffledRetos    = shuffleArr(retos);
+    const shuffledComodines = shuffleArr(comodines);
 
-  const { error: insertError } = await supabase.from('game_state').insert(assignments);
-  if (insertError) {
-    console.error('[Dealer] Insert failed:', insertError);
-  } else {
-    console.log(`[Dealer] Dealt ${assignments.length} cards successfully.`);
+    const assignments = [
+      ...shuffledRetos.slice(0, 22).map(c  => ({ match_id: matchId, card_id: c.id, player_id: player1Id, status: 'in_hand' })),
+      ...shuffledRetos.slice(22, 44).map(c => ({ match_id: matchId, card_id: c.id, player_id: player2Id, status: 'in_hand' })),
+      ...shuffledComodines.slice(0, 3).map(c => ({ match_id: matchId, card_id: c.id, player_id: player1Id, status: 'in_hand' })),
+      ...shuffledComodines.slice(3, 6).map(c => ({ match_id: matchId, card_id: c.id, player_id: player2Id, status: 'in_hand' })),
+    ];
+
+    const { error: insertError } = await supabase.from('game_state').insert(assignments);
+    if (insertError) {
+      console.error('[Dealer] Insert failed:', insertError);
+      return false;
+    }
+
+    console.log(`[Dealer] ✅ Dealt ${assignments.length} cards for match ${matchId}`);
+    return true;
+  } catch (err) {
+    console.error('[Dealer] Unexpected error:', err);
+    return false;
   }
 }
 
@@ -97,52 +111,41 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       if (session) {
         set({ session, user: session.user });
 
-        // Rehydrate profile
         const { data: profileData, error: profileError } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', session.user.id)
-          .single();
+          .from('profiles').select('*').eq('id', session.user.id).single();
         if (profileError && profileError.code !== 'PGRST116') throw profileError;
         if (profileData) set({ profile: profileData });
 
-        // Rehydrate most recent active match
         const { data: matchData, error: matchError } = await supabase
-          .from('matches')
-          .select('*')
+          .from('matches').select('*')
           .or(`player1_id.eq.${session.user.id},player2_id.eq.${session.user.id}`)
           .eq('status', 'active')
           .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle();
+          .limit(1).maybeSingle();
         if (matchError) throw matchError;
 
         if (matchData) {
           set({ match: matchData });
 
-          // If match is fully paired (player2 present) and user is HOST → check if dealing needed
-          if (matchData.player2_id && matchData.player1_id === session.user.id) {
-            // Run deal in background — idempotent guard prevents duplicates
+          // If match is already paired on hydration, attempt deal immediately (idempotent)
+          if (matchData.player2_id) {
             dealCards(matchData.id, matchData.player1_id, matchData.player2_id);
           }
 
-          // If match is waiting for player2 (host waiting screen), subscribe to updates
+          // Subscribe to match updates (works if matches table has Realtime enabled)
           if (!matchData.player2_id) {
             supabase
-              .channel(`match_update_${matchData.id}`)
-              .on(
-                'postgres_changes',
+              .channel(`match_listen_${matchData.id}`)
+              .on('postgres_changes',
                 { event: 'UPDATE', schema: 'public', table: 'matches', filter: `id=eq.${matchData.id}` },
                 async (payload) => {
-                  const updatedMatch = payload.new as Match;
-                  if (updatedMatch.player2_id && updatedMatch.status === 'active') {
-                    set({ match: updatedMatch });
-                    // Host is the Dealer — deal cards now that both players are here
-                    await dealCards(updatedMatch.id, updatedMatch.player1_id, updatedMatch.player2_id);
+                  const updated = payload.new as Match;
+                  if (updated.player2_id && updated.status === 'active') {
+                    set({ match: updated });
+                    await dealCards(updated.id, updated.player1_id, updated.player2_id);
                   }
                 }
-              )
-              .subscribe();
+              ).subscribe();
           }
         }
       }
@@ -173,47 +176,36 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         if (profileError) throw profileError;
 
         const { data: profile } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', authData.user.id)
-          .single();
+          .from('profiles').select('*').eq('id', authData.user.id).single();
 
-        // Archive any stale open matches from a previous session
-        await supabase
-          .from('matches')
+        // Archive stale open matches
+        await supabase.from('matches')
           .update({ status: 'finished' })
           .eq('player1_id', authData.user.id)
           .eq('status', 'active')
           .is('player2_id', null);
 
-        // Create fresh match — player2_id is null (waiting)
         const { data: matchData, error: matchError } = await supabase
           .from('matches')
           .insert([{ player1_id: authData.user.id, status: 'active' }])
-          .select()
-          .single();
+          .select().single();
         if (matchError) throw matchError;
 
         set({ profile, match: matchData });
 
-        // ── HOST REALTIME LISTENER ──────────────────────────────────────────
-        // When player2 joins, the Host is the Dealer → deal cards immediately
+        // Listen for guest joining (requires matches table in Realtime publication)
         supabase
-          .channel(`match_update_${matchData.id}`)
-          .on(
-            'postgres_changes',
+          .channel(`match_listen_${matchData.id}`)
+          .on('postgres_changes',
             { event: 'UPDATE', schema: 'public', table: 'matches', filter: `id=eq.${matchData.id}` },
             async (payload) => {
-              const updatedMatch = payload.new as Match;
-              if (updatedMatch.player2_id && updatedMatch.status === 'active') {
-                // Update match state (triggers App.tsx routing to GameScreen)
-                set({ match: updatedMatch });
-                // Deal cards — only Host does this, idempotent guard inside
-                await dealCards(updatedMatch.id, updatedMatch.player1_id, updatedMatch.player2_id);
+              const updated = payload.new as Match;
+              if (updated.player2_id && updated.status === 'active') {
+                set({ match: updated });
+                await dealCards(updated.id, updated.player1_id, updated.player2_id);
               }
             }
-          )
-          .subscribe();
+          ).subscribe();
       }
     } catch (error: any) {
       set({ error: error.message });
@@ -228,41 +220,39 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const { user } = get();
       if (!user) throw new Error('Must be logged in to join a match');
 
-      // Find the Host's profile by match code
       const { data: partnerProfile, error: partnerError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('match_code', matchCode.toUpperCase())
-        .single();
+        .from('profiles').select('*').eq('match_code', matchCode.toUpperCase()).single();
       if (partnerError || !partnerProfile) throw new Error('Código inválido o no encontrado');
       if (partnerProfile.id === user.id) throw new Error('No podés emparejarte con vos mismo');
 
-      // Find the Host's open match
       const { data: existingMatch, error: findMatchError } = await supabase
-        .from('matches')
-        .select('*')
+        .from('matches').select('*')
         .eq('player1_id', partnerProfile.id)
         .is('player2_id', null)
         .eq('status', 'active')
         .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
+        .limit(1).maybeSingle();
       if (findMatchError || !existingMatch) throw new Error('La partida no está disponible o ya está llena');
 
-      // Claim the slot as player2 — this UPDATE triggers the Host's Realtime listener
-      // which will then deal the cards. Guest does NOT deal.
       const { data: matchData, error: matchError } = await supabase
         .from('matches')
         .update({ player2_id: user.id })
         .eq('id', existingMatch.id)
-        .select()
-        .single();
+        .select().single();
       if (matchError) throw matchError;
 
-      // Guest sets match → App.tsx routes to GameScreen → loadGame + subscribeToMatch
-      // The Realtime subscription on game_state will fire when Host deals cards,
-      // triggering loadGame automatically for the Guest.
+      // ── REDUNDANCY LAYER 1: Guest also attempts deal ──────────────────────
+      // The Host will deal via Realtime IF matches table has Realtime enabled.
+      // The Guest deals here as a FALLBACK — idempotency guard prevents duplicates.
+      // Whoever runs dealCards first wins; second call is a no-op.
+      // Small delay to avoid race condition with the Realtime UPDATE reaching the Host.
       set({ match: matchData });
+
+      // Run in background — don't block routing
+      setTimeout(() => {
+        dealCards(matchData.id, matchData.player1_id, matchData.player2_id);
+      }, 800);
+
     } catch (error: any) {
       set({ error: error.message });
     } finally {
