@@ -13,19 +13,27 @@ export default defineConfig({
         name: 'todoXvos',
         short_name: 'todoXvos',
         description: 'El juego asíncrono para parejas',
-        theme_color: '#0B0F19',
-        background_color: '#0B0F19',
+        theme_color: '#FDFBFB',
+        background_color: '#FDFBFB',
         display: 'standalone',
         icons: [
           {
-            src: 'pwa-192x192.png',
+            src: 'favicon.svg',
             sizes: '192x192',
-            type: 'image/png'
+            type: 'image/svg+xml',
+            purpose: 'any'
           },
           {
-            src: 'pwa-512x512.png',
+            src: 'favicon.svg',
             sizes: '512x512',
-            type: 'image/png'
+            type: 'image/svg+xml',
+            purpose: 'any'
+          },
+          {
+            src: 'favicon.svg',
+            sizes: '512x512',
+            type: 'image/svg+xml',
+            purpose: 'maskable'
           }
         ]
       }
